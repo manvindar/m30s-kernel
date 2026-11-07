@@ -50,6 +50,11 @@ jobs:
           mkdir -p src/toolchain/clang/host/linux-x86 src/toolchain/gcc/linux-x86/aarch64
           ln -s "$GITHUB_WORKSPACE/tc/clang" src/toolchain/clang/host/linux-x86/clang-4639204
           ln -s "$GITHUB_WORKSPACE/tc/gcc64" src/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+      - name: Check toolchain
+        run: |
+          ls tc/clang/bin | head -5; file tc/clang/bin/clang* | head -3
+          tc/clang/bin/clang --version || ldd tc/clang/bin/clang | head
+          tc/gcc64/bin/aarch64-linux-android-gcc --version | head -1 || true
       - name: Build
         run: |
           cd src
@@ -57,6 +62,8 @@ jobs:
           export PATH=$GITHUB_WORKSPACE/tc/gcc32/bin:$PATH
           printf '#!/bin/sh\nexec gcc -fcommon "$@"\n' > $GITHUB_WORKSPACE/hostgcc && chmod +x $GITHUB_WORKSPACE/hostgcc  # old dtc needs -fcommon on gcc>=10
           M="HOSTCC=$GITHUB_WORKSPACE/hostgcc python=python2"
+          find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
+          sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
           make $M exynos9610-m30sdd_defconfig
           if [ "${{ inputs.fragment }}" = true ]; then
             ./scripts/kconfig/merge_config.sh -m .config ../config/a17.fragment
