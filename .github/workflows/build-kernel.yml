@@ -118,4 +118,4 @@ jobs:
       - name: Publish release
         if: ${{ inputs.publish }}
         env: { GH_TOKEN: "${{ github.token }}" }
-        run: gh release create "${{ inputs.tag }}" dist/* --title "SM-M307F kernel (${{ inputs.tag }})" --notes "Raw arm64 Image built from Samsung's 4.14.113 source. Put it into the stock boot.img with repack_boot.py."
+        run: gh release create "${{ inputs.tag }}" dist/* --prerelease --title "SM-M307F kernel (${{ inputs.tag }})" --notes "Raw arm64 Image built from Samsung's 4.14.113 source. Put it into the stock boot.img with repack_boot.py."
