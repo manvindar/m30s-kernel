@@ -12,3 +12,6 @@ CONFIG_DEFAULT_BBR=y
 CONFIG_IOSCHED_BFQ=y
 # CONFIG_DEBUG_ATOMIC_SLEEP is not set
 # CONFIG_PM_DEBUG is not set
+
+# shows in Settings > About > Kernel version
+CONFIG_LOCALVERSION="-a17-perf"
