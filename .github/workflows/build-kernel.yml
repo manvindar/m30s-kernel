@@ -14,6 +14,10 @@ on:
         description: Also apply patches/boost and merge config/boost.fragment (CPU/GPU clocks, touch boost)
         type: boolean
         default: false
+      hdr:
+        description: Apply patches/hdr (panel advertises HDR10 to Android)
+        type: boolean
+        default: false
       publish:
         description: Publish a GitHub release with Image and config
         type: boolean
@@ -80,6 +84,9 @@ jobs:
               grep -H "fuzz" ../patch.log | sed "s|^|$(basename $p): |" || true
             done
           fi
+          if [ "${{ inputs.hdr }}" = true ]; then
+            for p in ../patches/hdr/*.patch; do patch -p1 --no-backup-if-mismatch < "$p" || { echo "PATCH FAILED: $p"; exit 1; }; done
+          fi
           if [ "${{ inputs.boost }}" = true ]; then   # touch boost driver (not a patch: new file plus Makefile/Kconfig lines)
             cp ../boost/input_boost_m30s.c drivers/input/
             echo 'obj-$(CONFIG_INPUT_BOOST_M30S) += input_boost_m30s.o' >> drivers/input/Makefile
@@ -91,6 +98,7 @@ jobs:
           FRAGS=../config/a17.fragment
           [ "${{ inputs.perf }}" = true ] && FRAGS="$FRAGS ../config/perf.fragment"
           [ "${{ inputs.boost }}" = true ] && FRAGS="$FRAGS ../config/boost.fragment"
+          [ "${{ inputs.hdr }}" = true ] && FRAGS="$FRAGS ../config/hdr.fragment"
           if [ "${{ inputs.fragment }}" = true ]; then
             ./scripts/kconfig/merge_config.sh -m .config $FRAGS
             make $M olddefconfig
