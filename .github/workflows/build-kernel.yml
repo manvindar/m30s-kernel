@@ -66,6 +66,12 @@ jobs:
           export PATH=$GITHUB_WORKSPACE/tc/gcc32/bin:$PATH
           printf '#!/bin/sh\nexec gcc -fcommon "$@"\n' > $GITHUB_WORKSPACE/hostgcc && chmod +x $GITHUB_WORKSPACE/hostgcc  # old dtc needs -fcommon on gcc>=10
           M="HOSTCC=$GITHUB_WORKSPACE/hostgcc python=python2"
+          if [ "${{ inputs.fragment }}" = true ]; then   # Android common 4.14-q PSI series (26 patches); stop on any reject
+            for p in ../patches/psi/*.patch; do
+              patch -p1 -F3 --no-backup-if-mismatch < "$p" > ../patch.log 2>&1 || { echo "PATCH FAILED: $p"; cat ../patch.log; exit 1; }
+              grep -H "fuzz" ../patch.log | sed "s|^|$(basename $p): |" || true
+            done
+          fi
           find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
           sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
           make $M exynos9610-m30sdd_defconfig
@@ -78,6 +84,10 @@ jobs:
           fi
           make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; exit 1; }
           ls -l arch/arm64/boot/Image
+          echo "--- SELinux ALWAYS_ENFORCE (Samsung sets it only for user/ship builds):"
+          grep -n "ALWAYS_ENFORCE" security/selinux/Makefile || true
+          grep -l "ALWAYS_ENFORCE" security/selinux/.*.cmd 2>/dev/null | head -3 || true
+          echo "ALWAYS_ENFORCE in .config: $(grep -c ALWAYS_ENFORCE .config)"
           grep -E "^CONFIG_(PSI|MEMCG|CGROUP_BPF|BPF_SYSCALL|EROFS_FS|SECCOMP|KVM)=" .config || true
       - name: Collect
         run: |
