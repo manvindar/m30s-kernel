@@ -80,6 +80,11 @@ jobs:
               grep -H "fuzz" ../patch.log | sed "s|^|$(basename $p): |" || true
             done
           fi
+          if [ "${{ inputs.boost }}" = true ]; then   # touch boost driver (not a patch: new file plus Makefile/Kconfig lines)
+            cp ../boost/input_boost_m30s.c drivers/input/
+            echo 'obj-$(CONFIG_INPUT_BOOST_M30S) += input_boost_m30s.o' >> drivers/input/Makefile
+            cat ../boost/Kconfig.snippet >> drivers/input/Kconfig
+          fi
           find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
           sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
           make $M exynos9610-m30sdd_defconfig
