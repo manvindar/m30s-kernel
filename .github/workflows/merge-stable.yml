@@ -25,11 +25,11 @@ jobs:
       - name: Merge
         run: |
           python3 scripts/merge_stable.py linux-4.14.113 linux-${{ inputs.target }} ours report.txt
-          # the changed files, merged or conflicted, for review and for the build
-          (cd ours && git init -q . 2>/dev/null; true)
       - name: Package
         run: |
           mkdir out && cp report.txt out/
           tar -C ours -czf out/merged-tree.tar.gz --exclude=.git .
       - uses: actions/upload-artifact@v7
-        with: { name: merge-${{ inputs.target }}, path: out }
+        with:
+          name: merge-${{ inputs.target }}
+          path: out
