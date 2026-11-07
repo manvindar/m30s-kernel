@@ -6,12 +6,12 @@ index 06e4421..e59e5ef 100755
  
  	/* HDR info */
  	of_property_read_u32(node, "hdr_num", &hdr_num);
-+	if (!hdr_num) {		/* m30s DT has no HDR node: advertise HDR10 (units: 0.001 nit; min 0.0005 nit) */
++	if (!hdr_num) {		/* m30s DT has no HDR node: advertise HDR10 (HWC divides max/avg by 10000: 500 and 300 nit; min 0) */
 +		hdr_num = 1;
 +		hdr_type[0] = 2;	/* HDR_HDR10 */
-+		hdr_mxl = 500000;
-+		hdr_mal = 300000;
-+		hdr_mnl = 5;
++		hdr_mxl = 5000000;
++		hdr_mal = 3000000;
++		hdr_mnl = 0;
 +		dsim->lcd_info.dt_lcd_hdr.hdr_max_luma = hdr_mxl;
 +		dsim->lcd_info.dt_lcd_hdr.hdr_max_avg_luma = hdr_mal;
 +		dsim->lcd_info.dt_lcd_hdr.hdr_min_luma = hdr_mnl;
