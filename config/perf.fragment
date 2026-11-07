@@ -3,12 +3,12 @@
 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
 # faster zram; the runtime algorithm still has to be set to lz4 (comp_algorithm) before disksize
 CONFIG_CRYPTO_LZ4=y
+CONFIG_TCP_CONG_ADVANCED=y
 CONFIG_TCP_CONG_BBR=y
 CONFIG_NET_SCH_FQ=y
 CONFIG_DEFAULT_BBR=y
 # CONFIG_DEFAULT_CUBIC is not set
 # BFQ only works on blk-mq; CONFIG_SCSI_MQ_DEFAULT stays off (separate test, risky on Samsung UFS)
 CONFIG_IOSCHED_BFQ=y
-CONFIG_BFQ_GROUP_IOSCHED=y
 # CONFIG_DEBUG_ATOMIC_SLEEP is not set
 # CONFIG_PM_DEBUG is not set
