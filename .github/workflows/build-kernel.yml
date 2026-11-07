@@ -1,0 +1,79 @@
+name: Build kernel
+on:
+  workflow_dispatch:
+    inputs:
+      fragment:
+        description: Merge config/a17.fragment (PSI, memcg, BPF) into the stock defconfig
+        type: boolean
+        default: false
+      publish:
+        description: Publish a GitHub release with Image and config
+        type: boolean
+        default: false
+      tag:
+        description: Release tag
+        default: kernel-ci
+permissions:
+  contents: write
+env:
+  AOSP: https://android.googlesource.com/platform/prebuilts
+  REF: refs/tags/android-9.0.0_r30   # has clang-4639204, the compiler Samsung's Makefile names
+  SRC_TAG: source-SM-M307F_SWA_RR    # release of this repo holding Samsung's Kernel.tar.gz (not in git: 181 MB)
+jobs:
+  build:
+    runs-on: ubuntu-22.04   # old kernel, old toolchain: stay on a distro with python2 and a compatible host gcc
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq bc bison flex libssl-dev libelf-dev device-tree-compiler python2 xz-utils ccache
+      - name: Cache toolchains and ccache
+        uses: actions/cache@v6
+        with:
+          path: |
+            tc
+            ~/.cache/ccache
+          key: m30s-tc-${{ github.run_id }}
+          restore-keys: m30s-tc-
+      - name: Fetch toolchains (clang-4639204, gcc 4.9)
+        run: |
+          mkdir -p tc/clang tc/gcc64 tc/gcc32
+          get() { [ -n "$(ls -A "tc/$1" 2>/dev/null)" ] || curl -sfL --retry 6 --retry-all-errors --retry-delay 5 "$2" | tar xz -C "tc/$1"; }
+          get clang "$AOSP/clang/host/linux-x86/+archive/$REF/clang-4639204.tar.gz"
+          get gcc64 "$AOSP/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/$REF.tar.gz"
+          get gcc32 "$AOSP/gcc/linux-x86/arm/arm-linux-androideabi-4.9/+archive/$REF.tar.gz"
+      - name: Get Samsung's kernel source
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release download "$SRC_TAG" -p Kernel.tar.gz
+          mkdir src && tar -xzf Kernel.tar.gz -C src && rm Kernel.tar.gz
+          # Samsung's Makefile looks for its toolchains below $(srctree)/toolchain
+          mkdir -p src/toolchain/clang/host/linux-x86 src/toolchain/gcc/linux-x86/aarch64
+          ln -s "$GITHUB_WORKSPACE/tc/clang" src/toolchain/clang/host/linux-x86/clang-4639204
+          ln -s "$GITHUB_WORKSPACE/tc/gcc64" src/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+      - name: Build
+        run: |
+          cd src
+          export PLATFORM_VERSION=11 ANDROID_MAJOR_VERSION=r ARCH=arm64 CONFIG_SECTION_MISMATCH_WARN_ONLY=y
+          export PATH=$GITHUB_WORKSPACE/tc/gcc32/bin:$PATH
+          printf '#!/bin/sh\nexec gcc -fcommon "$@"\n' > $GITHUB_WORKSPACE/hostgcc && chmod +x $GITHUB_WORKSPACE/hostgcc  # old dtc needs -fcommon on gcc>=10
+          M="HOSTCC=$GITHUB_WORKSPACE/hostgcc python=python2"
+          make $M exynos9610-m30sdd_defconfig
+          if [ "${{ inputs.fragment }}" = true ]; then
+            ./scripts/kconfig/merge_config.sh -m .config ../config/a17.fragment
+            make $M olddefconfig
+          fi
+          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; exit 1; }
+          ls -l arch/arm64/boot/Image
+          grep -E "^CONFIG_(PSI|MEMCG|CGROUP_BPF|BPF_SYSCALL|EROFS_FS|SECCOMP|KVM)=" .config || true
+      - name: Collect
+        run: |
+          mkdir dist
+          cp src/arch/arm64/boot/Image src/.config dist/
+          cp scripts/repack_boot.py dist/
+          cd dist && sha256sum * > SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with: { name: kernel, path: dist/ }
+      - name: Publish release
+        if: ${{ inputs.publish }}
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "${{ inputs.tag }}" dist/* --title "SM-M307F kernel (${{ inputs.tag }})" --notes "Raw arm64 Image built from Samsung's 4.14.113 source. Put it into the stock boot.img with repack_boot.py."
