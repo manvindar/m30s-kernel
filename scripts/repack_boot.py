@@ -15,10 +15,14 @@ old_end = page + ksz + pad(ksz)
 new = open(kern, 'rb').read()
 assert new[56:60] == b'ARMd', 'not a raw arm64 Image'
 new_end = page + len(new) + pad(len(new))
-assert new_end <= len(d) and not any(d[old_end:new_end]), 'new kernel overruns the data after the old one'
+# Samsung puts a 16-byte 'SEANDROIDENFORCE' marker right after the padded kernel: move it behind the new kernel
+mark = bytes(d[old_end:old_end + 16]) if d[old_end:old_end + 9] == b'SEANDROID' else b''
+d[old_end:old_end + len(mark)] = bytes(len(mark))
+assert new_end + len(mark) <= len(d) and not any(d[old_end:new_end + len(mark)]), 'new kernel overruns the data after the old one'
 f[1] = len(new)
 f[13] = hashlib.sha1(new + struct.pack('<I', len(new)) + struct.pack('<I', 0) + struct.pack('<I', 0)).digest() + b'\0' * 12
 d[:HLEN] = struct.pack(FMT, *f)
 d[page:new_end] = new + b'\0' * pad(len(new))
+d[new_end:new_end + len(mark)] = mark
 open(out, 'wb').write(d)
 print(f'{out}: kernel {len(new)} B (was {ksz}), total {len(d)} B (unchanged)')
