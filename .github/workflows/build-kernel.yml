@@ -26,6 +26,10 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bc bison flex libssl-dev libelf-dev device-tree-compiler python2 xz-utils ccache
+      - name: Compat for the old clang (python wrapper, libtinfo.so.5)
+        run: |
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
+          sudo ln -sf /lib/x86_64-linux-gnu/libtinfo.so.6 /lib/x86_64-linux-gnu/libtinfo.so.5
       - name: Cache toolchains and ccache
         uses: actions/cache@v6
         with:
