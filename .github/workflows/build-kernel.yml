@@ -142,7 +142,7 @@ jobs:
             python3 ../scripts/$PROFILE_SCRIPT apply ../baseline.config .config "$VERSION_DATE"
             make $M olddefconfig
             python3 ../scripts/$PROFILE_SCRIPT verify ../baseline.config .config "$VERSION_DATE" > ../kernel-label-receipt.json
-            export KBUILD_BUILD_USER=manvindar KBUILD_BUILD_HOST=github-actions KBUILD_BUILD_VERSION=1
+            export KBUILD_BUILD_USER="Manvindar Singh" KBUILD_BUILD_HOST=github-actions KBUILD_BUILD_VERSION=1
             export KBUILD_BUILD_TIMESTAMP="$(python3 -c 'import datetime,sys; print(datetime.datetime.strptime(sys.argv[1], "%Y%m%d").strftime("%a %b %d 00:00:00 UTC %Y"))' "$VERSION_DATE")"
             M="$M LOCALVERSION="
           fi
