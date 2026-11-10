@@ -1,15 +1,11 @@
-# Kernel for the Samsung Galaxy M30s (SM-M307F)
+# Galaxy M30s SM-M307F kernel
 
-Builds Samsung's official open-source kernel (Linux 4.14.113, `exynos9610-m30sdd_defconfig`, Android 11 drop `SM-M307F_SWA_RR`) on GitHub Actions. Mac is too small for it.
+Public build and patch source for Samsung Linux 4.14.113 (`exynos9610-m30sdd_defconfig`, Android 11 source drop `SM-M307F_SWA_RR`). Upstream Samsung source is provided as `Kernel.tar.gz` in the [source release](https://github.com/manvindar/m30s-kernel/releases/tag/source-SM-M307F_SWA_RR), because it exceeds GitHub's Git file-size limit.
 
-- `Kernel.tar.gz` (181 MB, over git's file limit) is a release asset named `source-SM-M307F_SWA_RR`; the workflow downloads it. Private repo: Samsung's GPL source, keep it private unless decided otherwise.
-- Toolchains are Samsung's: AOSP `clang-4639204` and gcc 4.9 from tag `android-9.0.0_r30`.
-- Run `Build kernel` from the Actions tab. `fragment` merges `config/a17.fragment` (PSI, memcg, BPF) for Android 17.
-- `scripts/repack_boot.py STOCK_boot.img Image OUT_boot.img` swaps the kernel in the stock boot image (header v1, no ramdisk, AVB footer kept; flash vbmeta disabled). Flashing is a separate gate: Download mode, user OK, stock boot image kept.
+[Kernel releases](https://github.com/manvindar/m30s-kernel/releases) include raw ARM64 Image, exact kernel.config, repack tool and checksums. The Pixel ROM uses **kernel-4.14.113-a17**. Performance/boost variants are experimental; HDR variants caused black video on this SDR panel and should not be used for the Pixel ROM.
 
-## Versions (releases)
-- `kernel-4.14.113-a17` (Latest): stock config + PSI (28 Android common patches), BPF JIT, userfaultfd. The baseline the port repo pulls.
-- `kernel-4.14.113-a17-perf` (prerelease): + `-O2`, lz4 in the crypto API (set zram `comp_algorithm=lz4` at runtime), BBR + fq, BFQ (needs blk-mq: `CONFIG_SCSI_MQ_DEFAULT` stays off), debug options off.
-- `kernel-4.14.113-a17-boost` (prerelease): perf + a touch boost driver (`boost/input_boost_m30s.c`): CPU min frequency on both clusters for 150 ms after touch; tune in `/sys/module/input_boost_m30s/parameters/`.
-- CPU/GPU clocks are not raised: the OPP tables come from the ECT/ACPM firmware and the device tree (`dtb` partition), not from this source. The top steps are 2.314 GHz (A73) and 1.742 GHz (A53).
-- Experimental builds are prereleases; promote a blessed one with `gh release edit TAG --latest`.
+The Build kernel workflow uses Samsung's AOSP clang-4639204 and GCC4.9 toolchains from `android-9.0.0_r30`. Enable `fragment` to apply the PSI patch series and merge `config/a17.fragment` for Android 17. Full build commands and compatibility steps are in [.github/workflows/build-kernel.yml](.github/workflows/build-kernel.yml).
+
+This baseline uses permissive SELinux. Kernel builds alone do not prove hardware compatibility. Flashing requires the correct model, an unlocked bootloader, off-device backups and matching stock firmware for rollback. Read the Pixel port's [flashing guide](https://github.com/manvindar/m30s-pixel-port/blob/main/docs/FLASH.md).
+
+Git author metadata was sanitized before publication. The original history, build logs and releases remain in a private archive. Existing private checkouts must not push old history here; use a fresh clone of this public repository. Upstream patch authors and license information are preserved.
