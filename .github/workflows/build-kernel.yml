@@ -25,6 +25,10 @@ on:
       tag:
         description: Release tag
         default: kernel-ci
+      performance_profile:
+        description: Reviewed Pixel performance profile (requires dated baseline; includes bounded touch boost, excludes HDR)
+        type: boolean
+        default: false
       version_date:
         description: Optional YYYYMMDD metadata label on the exact Android 17 baseline; requires fragment=true and perf/boost/hdr=false
         default: ''
@@ -34,6 +38,7 @@ env:
   AOSP: https://android.googlesource.com/platform/prebuilts
   REF: refs/tags/android-9.0.0_r30   # has clang-4639204, the compiler Samsung's Makefile names
   SRC_TAG: source-SM-M307F_SWA_RR    # release of this repo holding Samsung's Kernel.tar.gz (not in git: 181 MB)
+  PERFORMANCE_PROFILE: ${{ inputs.performance_profile }}
   VERSION_DATE: ${{ inputs.version_date }}
 jobs:
   build:
@@ -68,6 +73,7 @@ jobs:
             test "${{ inputs.fragment }}" = true
             test "${{ inputs.perf }}" = false && test "${{ inputs.boost }}" = false && test "${{ inputs.hdr }}" = false
             python3 scripts/test_kernel_label.py
+            python3 scripts/test_perf_profile.py
             python3 scripts/label_baseline_config.py apply config/baseline-a17.config labeled-test.config "$VERSION_DATE"
             gh release download build-inputs-a17 -R manvindar/m30s-pixel-port -p m30s-kernel-a17-source.tar
             echo 'a36cac0bd4e3e51343f38f686375106d0b00cf55104f1d2ca0aabef780998f91  m30s-kernel-a17-source.tar' | sha256sum -c -
@@ -81,6 +87,7 @@ jobs:
           else
             gh release download "$SRC_TAG" -p Kernel.tar.gz
           fi
+          if [ "$PERFORMANCE_PROFILE" = true ]; then test -n "$VERSION_DATE"; fi
           mkdir src && tar -xzf Kernel.tar.gz -C src && rm Kernel.tar.gz
           # Samsung's Makefile looks for its toolchains below $(srctree)/toolchain
           mkdir -p src/toolchain/clang/host/linux-x86 src/toolchain/gcc/linux-x86/aarch64
@@ -109,7 +116,7 @@ jobs:
           if [ "${{ inputs.hdr }}" = true ]; then
             for p in ../patches/hdr/*.patch; do patch -p1 --no-backup-if-mismatch < "$p" || { echo "PATCH FAILED: $p"; exit 1; }; done
           fi
-          if [ "${{ inputs.boost }}" = true ]; then   # touch boost driver (not a patch: new file plus Makefile/Kconfig lines)
+          if [ "${{ inputs.boost }}" = true ] || [ "$PERFORMANCE_PROFILE" = true ]; then   # touch boost driver (not a patch: new file plus Makefile/Kconfig lines)
             cp ../boost/input_boost_m30s.c drivers/input/
             echo 'obj-$(CONFIG_INPUT_BOOST_M30S) += input_boost_m30s.o' >> drivers/input/Makefile
             cat ../boost/Kconfig.snippet >> drivers/input/Kconfig
@@ -130,9 +137,11 @@ jobs:
             for c in $(cat $FRAGS | sed -n 's/^# \(CONFIG_[A-Z0-9_]*\) is not set/\1/p'); do grep -q "^$c=" .config && echo "STILL SET: $c"; done
           fi
           if [ -n "$VERSION_DATE" ]; then
-            python3 ../scripts/label_baseline_config.py apply ../baseline.config .config "$VERSION_DATE"
+            PROFILE_SCRIPT=label_baseline_config.py
+            [ "$PERFORMANCE_PROFILE" = true ] && PROFILE_SCRIPT=perf_baseline_config.py
+            python3 ../scripts/$PROFILE_SCRIPT apply ../baseline.config .config "$VERSION_DATE"
             make $M olddefconfig
-            python3 ../scripts/label_baseline_config.py verify ../baseline.config .config "$VERSION_DATE" > ../kernel-label-receipt.json
+            python3 ../scripts/$PROFILE_SCRIPT verify ../baseline.config .config "$VERSION_DATE" > ../kernel-label-receipt.json
             export KBUILD_BUILD_USER=manvindar KBUILD_BUILD_HOST=github-actions KBUILD_BUILD_VERSION=1
             export KBUILD_BUILD_TIMESTAMP="$(python3 -c 'import datetime,sys; print(datetime.datetime.strptime(sys.argv[1], "%Y%m%d").strftime("%a %b %d 00:00:00 UTC %Y"))' "$VERSION_DATE")"
             M="$M LOCALVERSION="
@@ -154,7 +163,7 @@ jobs:
           grep -l "ALWAYS_ENFORCE" security/selinux/.*.cmd 2>/dev/null | head -3 || true
           echo "ALWAYS_ENFORCE in .config: $(grep -c ALWAYS_ENFORCE .config)"
           grep -E "^CONFIG_(PSI|MEMCG|CGROUP_BPF|BPF_SYSCALL|EROFS_FS|SECCOMP|KVM)=" .config || true
-      - name: Matching metadata boot image
+      - name: Matching reviewed baseline boot image
         if: ${{ inputs.version_date != '' }}
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
