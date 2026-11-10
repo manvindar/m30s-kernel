@@ -1,0 +1,28 @@
+{
+  "baseline_archive_sha256": "15898c3eb7bcf5cc6a576cbc670b007cc40d4d7621103b3e40104dd60a3791e2",
+  "donor_repository": "https://github.com/sundrams-playground/kernel_samsung_exynos9610",
+  "donor_sha": "7e53227ad44b83be937c6a03941815ed0bd13c0a",
+  "patch_sha256": {
+    "0001-schedutil-invalidate-stale-frequency-cache.patch": "f653b23e5b468318bc77ba274e6126ea0ecb833fde7bfba35a4b2abf11082c2c",
+    "0002-mali-r26-high-priority-maintenance-workqueues.patch": "dd179da0bd8eb0c40c4ffdbd83190ff2e32fa19cb0acc01b9658e2bfda37491f"
+  },
+  "source_pins": {
+    "kernel/sched/cpufreq_schedutil.c": {
+      "before": "0eb78c6b8be2de7662744d56867eaa4dad4b4d571b718e22cc8e2e9fbcd4e495",
+      "after": "32152dbfa43e2d4993ca19a7c2012bdd4b30f0f43d4d6e43c7b493c7e23dc11f"
+    },
+    "drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_instr_backend.c": {
+      "before": "04c5a46eeccb1000c3aac4c6857a650bc890a8790a2eb78059fd5e86627fcadc",
+      "after": "a49dd13ade0d9c3e1e23c615e70bef8625b91f5ce8bb2a4ef2d5b5b1a3948560"
+    },
+    "drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_jm_hw.c": {
+      "before": "2580436c15b305ee738f99633f0136c1fc08cfb7b1923fcd4fa0692b2cfb7d15",
+      "after": "da24030dc8081990fcfba42a4d149e66276dd3d892497aa80236a2ba7cd4529d"
+    },
+    "drivers/gpu/arm/b_r26p0/device/mali_kbase_device.c": {
+      "before": "c567c6841658a9b07d15a532d30ae9ca39d587eb097462931355b57481fcc414",
+      "after": "4bf36741cb2feef4e5de39c7148290a27b0e80168fe0b00fb529fc2afea7fbe0"
+    }
+  },
+  "limits": "No native kernel ABI/scheduler concurrency/actual timing/GPU queue priority behavior verified. Deadline cache-clear branches source inspected but not exercised in this harness."
+}

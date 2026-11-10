@@ -21,3 +21,7 @@ This profile enables compiler `-O2`, LZ4 compression support, BBR with Fair Queu
 LZ4 is available but the ROM's existing zstd zram setting stays in place. Network defaults can be overridden by Android at runtime. Speed, battery, networking and module compatibility require device checks; these are performance candidates, not measured improvements. BFQ and Samsung's storage queue mode stay unchanged because enabling BFQ alone does not activate it on the existing UFS path. HDR, GPU/MIF clock locks, resolution changes, security changes and uncompiled donor backports are excluded.
 
 Future builds use `KBUILD_BUILD_USER="Manvindar Singh"` and `KBUILD_BUILD_HOST=github-actions`, so the compiled Linux banner identifies the owner as `Manvindar Singh@github-actions`. Existing release images keep their original banner and checksums.
+
+### Narrow CPU/Mali candidate
+
+Enable `cpu_mali=true` together with `performance_profile=true`, `fragment=true`, `version_date=20261110` and legacy perf/boost/hdr=false. Use a distinct prerelease tag. See [candidate scope and test limits](docs/CPU-MALI-CANDIDATE.md). The v0.6 device-verified kernel remains the rollback baseline.

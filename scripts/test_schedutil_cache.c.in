@@ -1,0 +1,49 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+typedef uint64_t u64; typedef int64_t s64;
+#define CONFIG_FREQVAR_TUNE 1
+#define CONFIG_SCHED_KAIR_GLUE 1
+#define KAIR_DIVERGING -1
+#define RV_DECLARE(x) int x=0
+#define RV_SET(...) do {} while(0)
+#define per_cpu(name,cpu) name[cpu]
+struct cpufreq_policy { unsigned int max,cur,cpu; bool fast_switch_enabled; };
+struct sugov_tunables { bool fb_legacy; };
+struct sugov_policy { struct cpufreq_policy *policy; struct sugov_tunables *tunables; unsigned int next_freq,cached_raw_freq; u64 last_freq_update_time,up_rate_delay_ns,down_rate_delay_ns; bool work_in_progress; int irq_work; };
+struct kair_class { int (*job_inferer)(struct kair_class*); unsigned int (*cap_bettor)(struct kair_class*,void*,unsigned int); };
+struct sugov_cpu { struct kair_class *util_vessel; unsigned long util,max,cached_util; };
+static struct sugov_cpu sugov_cpu[8];
+static bool arch_scale_freq_invariant(void) { return true; }
+static unsigned int freqvar_tipping_point(int cpu,unsigned int freq) { (void)cpu;return freq+(freq>>2); }
+static unsigned int cpufreq_driver_resolve_freq(struct cpufreq_policy *p,unsigned int freq) { (void)p;return freq; }
+static unsigned int cpufreq_driver_fast_switch(struct cpufreq_policy *p,unsigned int freq) { (void)p;return freq; }
+static int sugov_select_scaling_cpu(void) { return 0; }
+static void irq_work_queue_on(int *work,int cpu) { (void)work;(void)cpu; }
+static int smp_processor_id(void) { return 0; }
+#define trace_cpu_frequency(...) do{}while(0)
+#define trace_cpu_frequency_sugov(...) do{}while(0)
+#define trace_sugov_kair_freq(...) do{}while(0)
+/* EXTRACTED_KERNEL_FUNCTIONS */
+int main(int argc,char **argv) {
+ if(argc!=2) return 2;
+ bool down=strcmp(argv[1],"down")==0;
+ struct cpufreq_policy policy={.max=2000,.cur=down?2000:800,.cpu=0,.fast_switch_enabled=true};
+ struct sugov_tunables tunables={.fb_legacy=true};
+ struct sugov_policy sg={.policy=&policy,.tunables=&tunables,.next_freq=policy.cur,.up_rate_delay_ns=100,.down_rate_delay_ns=100};
+ unsigned int desired=down?250:2000;
+ unsigned long util=down?100:800;
+ unsigned int candidate=get_next_freq(&sg,util,1000);
+ if(candidate!=desired) return 3;
+ sugov_update_commit(&sg,10,candidate);
+ if(sg.next_freq!=policy.cur) return 4; /* limiter must still reject early change */
+ candidate=get_next_freq(&sg,util,1000);
+ sugov_update_commit(&sg,200,candidate);
+ if(sg.next_freq!=desired||policy.cur!=desired) {
+  fprintf(stderr,"FAIL: same utilization after rate-limit expiry kept %u; expected %u\n",sg.next_freq,desired);return 1;
+ }
+ printf("PASS %s: next_freq=%u after rate-limit expiry\n",argv[1],sg.next_freq);return 0;
+}

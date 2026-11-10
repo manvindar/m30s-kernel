@@ -29,6 +29,10 @@ on:
         description: Reviewed Pixel performance profile (requires dated baseline; includes bounded touch boost, excludes HDR)
         type: boolean
         default: false
+      cpu_mali:
+        description: Experimental four-file schedutil cache and Mali R26 maintenance-priority candidate; requires performance_profile
+        type: boolean
+        default: false
       version_date:
         description: Optional YYYYMMDD metadata label on the exact Android 17 baseline; requires fragment=true and perf/boost/hdr=false
         default: ''
@@ -40,6 +44,7 @@ env:
   SRC_TAG: source-SM-M307F_SWA_RR    # release of this repo holding Samsung's Kernel.tar.gz (not in git: 181 MB)
   PERFORMANCE_PROFILE: ${{ inputs.performance_profile }}
   VERSION_DATE: ${{ inputs.version_date }}
+  CPU_MALI: ${{ inputs.cpu_mali }}
 jobs:
   build:
     runs-on: ubuntu-22.04   # old kernel, old toolchain: stay on a distro with python2 and a compatible host gcc
@@ -88,6 +93,7 @@ jobs:
             gh release download "$SRC_TAG" -p Kernel.tar.gz
           fi
           if [ "$PERFORMANCE_PROFILE" = true ]; then test -n "$VERSION_DATE"; fi
+          if [ "$CPU_MALI" = true ]; then test "$PERFORMANCE_PROFILE" = true; test -n "$VERSION_DATE"; fi
           mkdir src && tar -xzf Kernel.tar.gz -C src && rm Kernel.tar.gz
           # Samsung's Makefile looks for its toolchains below $(srctree)/toolchain
           mkdir -p src/toolchain/clang/host/linux-x86 src/toolchain/gcc/linux-x86/aarch64
@@ -112,6 +118,11 @@ jobs:
               patch -p1 -F3 --no-backup-if-mismatch < "$p" > ../patch.log 2>&1 || { echo "PATCH FAILED: $p"; cat ../patch.log; exit 1; }
               grep -H "fuzz" ../patch.log | sed "s|^|$(basename $p): |" || true
             done
+          fi
+          if [ "$CPU_MALI" = true ]; then
+            python3 ../scripts/test_cpu_mali.py .
+            python3 ../scripts/apply_cpu_mali.py . ../patches/cpu-mali > ../cpu-mali-source-receipt.json
+            python3 ../scripts/run_schedutil_cache_regression.py kernel/sched/cpufreq_schedutil.c ../cpu-mali-regression
           fi
           if [ "${{ inputs.hdr }}" = true ]; then
             for p in ../patches/hdr/*.patch; do patch -p1 --no-backup-if-mismatch < "$p" || { echo "PATCH FAILED: $p"; exit 1; }; done
@@ -155,6 +166,7 @@ jobs:
           image = Path('arch/arm64/boot/Image').read_bytes()
           assert image[56:60] == b'ARMd'
           assert b'Linux version 4.14.113-perf-' + os.environ['VERSION_DATE'].encode() + b' ' in image
+          assert b'Manvindar Singh@github-actions' in image
           PYBANNER
           fi
           ls -l arch/arm64/boot/Image
@@ -196,6 +208,15 @@ jobs:
             cp src/include/config/kernel.release dist/kernel-release.txt
             cp kernel-label-receipt.json dist/
             cp boot-a17-perf.img boot-image-verification.json dist/
+            if [ "$CPU_MALI" = true ]; then
+              cp cpu-mali-source-receipt.json dist/
+              cp patches/cpu-mali/manifest.json dist/cpu-mali-input-manifest.json
+              python3 - <<'PYRECEIPT'
+          import hashlib, json, os
+          from pathlib import Path
+          Path("dist/cpu-mali-build-receipt.json").write_text(json.dumps({"source_commit":os.environ["GITHUB_SHA"], "run_id":os.environ["GITHUB_RUN_ID"], "native_compile_verified":True, "runtime_verified":False, "kernel_sha256":hashlib.sha256(Path("dist/Image").read_bytes()).hexdigest(), "build_user":"Manvindar Singh", "profile":"performance_profile + cpu_mali", "hdr":False},indent=2)+"\n")
+          PYRECEIPT
+            fi
           fi
           cd dist && sha256sum * > SHA256SUMS
       - uses: actions/upload-artifact@v7
@@ -203,4 +224,9 @@ jobs:
       - name: Publish release
         if: ${{ inputs.publish }}
         env: { GH_TOKEN: "${{ github.token }}" }
-        run: gh release create "${{ inputs.tag }}" dist/* --prerelease --title "SM-M307F kernel (${{ inputs.tag }})" --notes "Raw arm64 Image built from Samsung's 4.14.113 source. Put it into the stock boot.img with repack_boot.py."
+        run: |
+          if [ "$CPU_MALI" = true ]; then
+            gh release create "${{ inputs.tag }}" dist/* --prerelease --title "SM-M307F CPU/Mali kernel candidate (${{ inputs.tag }})" --notes-file docs/CPU-MALI-CANDIDATE.md
+          else
+            gh release create "${{ inputs.tag }}" dist/* --prerelease --title "SM-M307F kernel (${{ inputs.tag }})" --notes "Raw arm64 Image built from Samsung's 4.14.113 source. Put it into the stock boot.img with repack_boot.py."
+          fi

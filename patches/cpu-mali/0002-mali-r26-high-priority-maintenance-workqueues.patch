@@ -1,0 +1,49 @@
+From 6bce9047d99abac37be688b7575e3150c5a2bf55 Mon Sep 17 00:00:00 2001
+From: repinger <evanf780@gmail.com>
+Date: Sun, 06 Mar 2022 12:14:33 +0000
+Subject: [PATCH] mali/b_r26p0: Run WQs as high prio WQs
+
+mali/b_r26p0: Run WQs as high prio WQs
+
+Signed-off-by: repinger <evanf780@gmail.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+
+Upstream-donor: https://github.com/sundrams-playground/kernel_samsung_exynos9610/commit/6bce9047d99abac37be688b7575e3150c5a2bf55
+
+---
+diff --git a/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_instr_backend.c b/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_instr_backend.c
+--- a/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_instr_backend.c
++++ b/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_instr_backend.c
+@@ -389,7 +389,7 @@ int kbase_instr_backend_init(struct kbase_device *kbdev)
+ #endif
+ 
+ 	kbdev->hwcnt.backend.cache_clean_wq =
+-			alloc_workqueue("Mali cache cleaning workqueue", 0, 1);
++			alloc_workqueue("Mali cache cleaning workqueue", WQ_HIGHPRI, 1);
+ 	if (NULL == kbdev->hwcnt.backend.cache_clean_wq)
+ 		ret = -EINVAL;
+ 
+diff --git a/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_jm_hw.c b/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_jm_hw.c
+--- a/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_jm_hw.c
++++ b/drivers/gpu/arm/b_r26p0/backend/gpu/mali_kbase_jm_hw.c
+@@ -1464,7 +1464,7 @@ KBASE_EXPORT_TEST_API(kbase_reset_gpu_wait);
+ int kbase_reset_gpu_init(struct kbase_device *kbdev)
+ {
+ 	kbdev->hwaccess.backend.reset_workq = alloc_workqueue(
+-						"Mali reset workqueue", 0, 1);
++						"Mali reset workqueue", WQ_HIGHPRI, 1);
+ 	if (kbdev->hwaccess.backend.reset_workq == NULL)
+ 		return -ENOMEM;
+ 
+diff --git a/drivers/gpu/arm/b_r26p0/device/mali_kbase_device.c b/drivers/gpu/arm/b_r26p0/device/mali_kbase_device.c
+--- a/drivers/gpu/arm/b_r26p0/device/mali_kbase_device.c
++++ b/drivers/gpu/arm/b_r26p0/device/mali_kbase_device.c
+@@ -86,7 +86,7 @@ static int kbase_device_as_init(struct kbase_device *kbdev, int i)
+ 	kbdev->as[i].bf_data.addr = 0ULL;
+ 	kbdev->as[i].pf_data.addr = 0ULL;
+ 
+-	kbdev->as[i].pf_wq = alloc_workqueue("mali_mmu%d", 0, 1, i);
++	kbdev->as[i].pf_wq = alloc_workqueue("mali_mmu%d", WQ_HIGHPRI, 1, i);
+ 	if (!kbdev->as[i].pf_wq)
+ 		return -EINVAL;
+ 

@@ -1,0 +1,82 @@
+From 735229a1f628cbbfc886072a7716b4be797def3e Mon Sep 17 00:00:00 2001
+From: John Dias <joaodias@google.com>
+Date: Thu, 14 Jun 2018 05:16:28 +0000
+Subject: [PATCH] cpufreq: schedutil: clear cached_raw_freq when invalidated
+
+cpufreq: schedutil: clear cached_raw_freq when invalidated
+
+The cpufreq_schedutil governor keeps a cache of the last
+raw frequency that was mapped to a supported device frequency.
+If the next request for a frequency matches the cached
+value, the policy's next_freq value is reused. But there
+are paths that can update the raw cached value without
+updating the next_freq value, and there are paths that
+can set the next_freq value without setting the raw
+cached value. On those paths, the cached value
+must be reset.
+
+The case that has been observed is when a frequency request
+reaches sugov_update_commit but is then rejected by to
+the sugov_up_down_rate_limit check.
+
+Bug: 109757301
+Change-Id: I7c585339a04ff1732054d6e5b36a57e2d41266aa
+Signed-off-by: John Dias <joaodias@google.com>
+Signed-off-by: Adam W. Willis <return.of.octobot@gmail.com>
+Signed-off-by: alk3pInjection <webmaster@raspii.tech>
+(cherry picked from commit 8cd9228741825a7eb6c731f4f80d7abe1ddae6c3)
+Signed-off-by: Zlatan Radovanovic <zlatan.radovanovic@fet.ba>
+Signed-off-by: Cyber Knight <cyberknight755@gmail.com>
+[TenSeventy7: Also apply to sched/exynos/aigo]
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+
+Port scope: schedutil only. Donor AIGo path excluded: not present in authenticated Samsung M30s baseline.
+
+Upstream-donor: https://github.com/sundrams-playground/kernel_samsung_exynos9610/commit/735229a1f628cbbfc886072a7716b4be797def3e
+
+---
+diff --git a/kernel/sched/cpufreq_schedutil.c b/kernel/sched/cpufreq_schedutil.c
+--- a/kernel/sched/cpufreq_schedutil.c
++++ b/kernel/sched/cpufreq_schedutil.c
+@@ -259,8 +259,11 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
+ 	if (sg_policy->next_freq == next_freq)
+ 		return;
+ 
+-	if (sugov_up_down_rate_limit(sg_policy, time, next_freq))
++	if (sugov_up_down_rate_limit(sg_policy, time, next_freq)) {
++		/* Don't cache a raw freq that didn't become next_freq */
++		sg_policy->cached_raw_freq = 0;
+ 		return;
++	}
+ 
+ 	sg_policy->next_freq = next_freq;
+ 	sg_policy->last_freq_update_time = time;
+@@ -426,8 +429,11 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
+ 			j_sg_cpu->iowait_boost_pending = false;
+ 			continue;
+ 		}
+-		if (j_sg_cpu->flags & SCHED_CPUFREQ_DL)
++		if (j_sg_cpu->flags & SCHED_CPUFREQ_DL) {
++			/* clear cache when it's bypassed */
++			sg_policy->cached_raw_freq = 0;
+ 			return policy->cpuinfo.max_freq;
++		}
+ 
+ 		j_util = j_sg_cpu->util;
+ 		j_max = j_sg_cpu->max;
+@@ -461,10 +467,13 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
+ 	sg_cpu->last_update = time;
+ 
+ 	if (sugov_should_update_freq(sg_policy, time)) {
+-		if (flags & SCHED_CPUFREQ_DL)
++		if (flags & SCHED_CPUFREQ_DL) {
++			/* clear cache when it's bypassed */
++			sg_policy->cached_raw_freq = 0;
+ 			next_f = sg_policy->policy->cpuinfo.max_freq;
+-		else
++		} else {
+ 			next_f = sugov_next_freq_shared(sg_cpu, time);
++		}
+ 
+ 		sugov_update_commit(sg_policy, time, next_f);
+ 	}
