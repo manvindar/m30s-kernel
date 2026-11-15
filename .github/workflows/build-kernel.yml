@@ -124,6 +124,8 @@ jobs:
             python3 ../scripts/apply_cpu_mali.py . ../patches/cpu-mali > ../cpu-mali-source-receipt.json
             python3 ../scripts/run_schedutil_cache_regression.py kernel/sched/cpufreq_schedutil.c ../cpu-mali-regression
           fi
+          python3 ../scripts/apply_acpm.py . ../patches/acpm/acpm-inform-mmio.patch > ../acpm-source-receipt.json
+          python3 ../scripts/acpm-regression/run_acpm_regression.py --clang ../tc/clang/bin/clang --objdump ../tc/gcc64/bin/aarch64-linux-android-objdump --out ../acpm-regression
           if [ "${{ inputs.hdr }}" = true ]; then
             for p in ../patches/hdr/*.patch; do patch -p1 --no-backup-if-mismatch < "$p" || { echo "PATCH FAILED: $p"; exit 1; }; done
           fi
@@ -169,6 +171,7 @@ jobs:
           assert b'Manvindar Singh@github-actions' in image
           PYBANNER
           fi
+          python3 ../scripts/verify_acpm_object.py . ../tc/gcc64/bin/aarch64-linux-android-objdump ../acpm-object-verification
           ls -l arch/arm64/boot/Image
           echo "--- SELinux ALWAYS_ENFORCE (Samsung sets it only for user/ship builds):"
           grep -n "ALWAYS_ENFORCE" security/selinux/Makefile || true
@@ -202,6 +205,10 @@ jobs:
         run: |
           mkdir dist
           cp src/arch/arm64/boot/Image dist/
+          cp acpm-source-receipt.json dist/
+          cp acpm-regression/receipt.json dist/acpm-regression-receipt.json
+          cp acpm-object-verification/receipt.json dist/acpm-object-receipt.json
+          cp acpm-object-verification/actual-function.txt dist/acpm-actual-function.txt
           cp src/.config dist/kernel.config   # dotfiles are skipped by the release glob
           cp scripts/repack_boot.py dist/
           if [ -n "$VERSION_DATE" ]; then
