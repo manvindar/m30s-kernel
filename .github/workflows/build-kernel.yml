@@ -168,7 +168,7 @@ jobs:
           if [[ " $EXTRAS_LIST " == *" lto "* ]]; then   # LTO variant: proton clang 13 + its binutils (gold) and LLVMgold.so
             P=$GITHUB_WORKSPACE/proton
             export PATH=$P/bin:$PATH LD_LIBRARY_PATH=$P/lib
-            M="$M CC=$P/bin/clang CROSS_COMPILE=$P/bin/aarch64-linux-gnu- CROSS_COMPILE_ARM32=$P/bin/arm-linux-gnueabi- KCFLAGS=-Wno-error"   # Samsung builds with -Werror; clang 13 warns far more than clang 6
+            M="$M CC=$P/bin/clang CROSS_COMPILE=$P/bin/aarch64-linux-gnu- CROSS_COMPILE_ARM32=$P/bin/arm-linux-gnueabi- GCC_TOOLCHAIN_DIR=$P/aarch64-linux-gnu/bin/ KCFLAGS=-Wno-error"   # Samsung builds with -Werror; clang 13 warns far more than clang 6
           fi
           find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
           sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
