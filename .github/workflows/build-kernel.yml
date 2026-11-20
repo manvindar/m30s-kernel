@@ -36,6 +36,9 @@ on:
       version_date:
         description: Optional YYYYMMDD metadata label on the exact Android 17 baseline; requires fragment=true and perf/boost/hdr=false
         default: ''
+      extras:
+        description: Mint-port extras, comma list of memfd,pidfd,wireguard,deknox,kernelsu (or all); requires fragment=true, no version_date/performance_profile
+        default: ''
 permissions:
   contents: write
 env:
@@ -45,6 +48,9 @@ env:
   PERFORMANCE_PROFILE: ${{ inputs.performance_profile }}
   VERSION_DATE: ${{ inputs.version_date }}
   CPU_MALI: ${{ inputs.cpu_mali }}
+  EXTRAS: ${{ inputs.extras }}
+  EXTRAS_ORDER: memfd pidfd wireguard deknox kernelsu   # patch/fragment order, independent of input order
+  KSU_COMMIT: 3291538446b7fccec46fa52775e6bf594c77b9f4  # tiann/KernelSU v0.9.2, last line Mint ships; supports non-GKI manual hooks
 jobs:
   build:
     runs-on: ubuntu-22.04   # old kernel, old toolchain: stay on a distro with python2 and a compatible host gcc
@@ -95,6 +101,18 @@ jobs:
           if [ "$PERFORMANCE_PROFILE" = true ]; then test -n "$VERSION_DATE"; fi
           if [ "$CPU_MALI" = true ]; then test "$PERFORMANCE_PROFILE" = true; test -n "$VERSION_DATE"; fi
           mkdir src && tar -xzf Kernel.tar.gz -C src && rm Kernel.tar.gz
+          if [ -n "$EXTRAS" ]; then   # extras never touch the dated baseline or the reviewed profiles
+            test "${{ inputs.fragment }}" = true && test -z "$VERSION_DATE" && test "$PERFORMANCE_PROFILE" = false && test "$CPU_MALI" = false
+            [ "$EXTRAS" = all ] && EXTRAS="$EXTRAS_ORDER"
+            for x in ${EXTRAS//,/ }; do case " $EXTRAS_ORDER " in *" $x "*) ;; *) echo "unknown extra: $x"; exit 1;; esac; done
+            echo "EXTRAS_LIST=${EXTRAS//,/ }" >> "$GITHUB_ENV"
+            if [[ " ${EXTRAS//,/ } " == *" kernelsu "* ]]; then   # full history: KernelSU's Makefile derives KSU_VERSION from the commit count
+              git clone -q https://github.com/tiann/KernelSU src/KernelSU
+              git -C src/KernelSU checkout -q "$KSU_COMMIT"
+              test "$(git -C src/KernelSU rev-parse HEAD)" = "$KSU_COMMIT"
+              ln -s ../KernelSU/kernel src/drivers/kernelsu
+            fi
+          fi
           # Samsung's Makefile looks for its toolchains below $(srctree)/toolchain
           mkdir -p src/toolchain/clang/host/linux-x86 src/toolchain/gcc/linux-x86/aarch64
           ln -s "$GITHUB_WORKSPACE/tc/clang" src/toolchain/clang/host/linux-x86/clang-4639204
@@ -119,6 +137,13 @@ jobs:
               grep -H "fuzz" ../patch.log | sed "s|^|$(basename $p): |" || true
             done
           fi
+          for x in $EXTRAS_ORDER; do   # Mint-port extras (patches/extras/<name>); stop on any reject
+            if [[ " $EXTRAS_LIST " != *" $x "* ]] || [ ! -d ../patches/extras/$x ]; then continue; fi
+            for p in ../patches/extras/$x/*.patch; do
+              patch -p1 -F3 --no-backup-if-mismatch < "$p" > ../patch.log 2>&1 || { echo "PATCH FAILED: $p"; cat ../patch.log; exit 1; }
+              grep -H "fuzz" ../patch.log | sed "s|^|$x/$(basename $p): |" || true
+            done
+          done
           if [ "$CPU_MALI" = true ]; then
             python3 ../scripts/test_cpu_mali.py .
             python3 ../scripts/apply_cpu_mali.py . ../patches/cpu-mali > ../cpu-mali-source-receipt.json
@@ -139,6 +164,9 @@ jobs:
           [ "${{ inputs.perf }}" = true ] && FRAGS="$FRAGS ../config/perf.fragment"
           [ "${{ inputs.boost }}" = true ] && FRAGS="$FRAGS ../config/boost.fragment"
           [ "${{ inputs.hdr }}" = true ] && FRAGS="$FRAGS ../config/hdr.fragment"
+          XFRAGS=""
+          for x in $EXTRAS_ORDER; do if [[ " $EXTRAS_LIST " == *" $x "* ]] && [ -f ../config/extras-$x.fragment ]; then XFRAGS="$XFRAGS ../config/extras-$x.fragment"; fi; done
+          if [ -n "$EXTRAS" ]; then printf 'CONFIG_LOCALVERSION="-a17-mint"\n' > ../extras-localversion.fragment; FRAGS="$FRAGS $XFRAGS ../extras-localversion.fragment"; fi
           if [ "${{ inputs.fragment }}" = true ]; then
             ./scripts/kconfig/merge_config.sh -m .config $FRAGS
             make $M olddefconfig
@@ -146,6 +174,12 @@ jobs:
           if [ "${{ inputs.fragment }}" = true ]; then   # symbols the 4.14 source does not know are dropped silently
             for c in $(cat $FRAGS | sed -n 's/^\(CONFIG_[A-Z0-9_]*\)=y/\1/p'); do grep -q "^$c=y" .config || echo "NOT IN FINAL CONFIG: $c"; done
             for c in $(cat $FRAGS | sed -n 's/^# \(CONFIG_[A-Z0-9_]*\) is not set/\1/p'); do grep -q "^$c=" .config && echo "STILL SET: $c"; done
+          fi
+          if [ -n "$EXTRAS" ]; then   # extras: a dropped or overridden symbol is a failure, not a note
+            bad=0
+            for c in $(cat $XFRAGS /dev/null | sed -n 's/^\(CONFIG_[A-Z0-9_]*\)=y/\1/p'); do grep -q "^$c=y" .config || { echo "EXTRAS NOT IN FINAL CONFIG: $c"; bad=1; }; done
+            for c in $(cat $XFRAGS /dev/null | sed -n 's/^# \(CONFIG_[A-Z0-9_]*\) is not set/\1/p'); do grep -q "^$c=" .config && { echo "EXTRAS STILL SET: $c"; bad=1; }; done
+            test $bad = 0
           fi
           if [ -n "$VERSION_DATE" ]; then
             PROFILE_SCRIPT=label_baseline_config.py
@@ -170,6 +204,16 @@ jobs:
           PYBANNER
           fi
           ls -l arch/arm64/boot/Image
+          if [ -n "$EXTRAS" ]; then   # the features must be linked in, not just configured
+            need="sys_userfaultfd"
+            if [[ " $EXTRAS_LIST " == *" pidfd "* ]]; then need="$need sys_pidfd_open sys_pidfd_send_signal"; fi
+            if [[ " $EXTRAS_LIST " == *" wireguard "* ]]; then need="$need wg_device_init"; fi
+            if [[ " $EXTRAS_LIST " == *" kernelsu "* ]]; then need="$need ksu_handle_execveat ksu_handle_faccessat ksu_handle_stat ksu_handle_vfs_read ksu_handle_input_handle_event"; fi
+            for s in $need; do grep -qE " [Tt] $s$" System.map && echo "linked: $s" || { echo "MISSING SYMBOL: $s"; exit 1; }; done
+            if [[ " $EXTRAS_LIST " == *" memfd "* ]]; then grep -q F_SEAL_FUTURE_WRITE include/uapi/linux/fcntl.h && grep -q 'info->seals & F_SEAL_FUTURE_WRITE' mm/shmem.c && echo "memfd: F_SEAL_FUTURE_WRITE in shmem" || { echo 'MISSING: F_SEAL_FUTURE_WRITE'; exit 1; }; fi
+            grep -E "^CONFIG_(USERFAULTFD|WIREGUARD|KSU|OVERLAY_FS|SECURITY_DSMS|INTEGRITY|FIVE|PROCA|SECURITY_DEFEX|UH|KPROBES)=" .config || true
+            echo "EXTRAS=$EXTRAS_LIST" > ../extras-receipt.txt; sha256sum arch/arm64/boot/Image >> ../extras-receipt.txt
+          fi
           echo "--- SELinux ALWAYS_ENFORCE (Samsung sets it only for user/ship builds):"
           grep -n "ALWAYS_ENFORCE" security/selinux/Makefile || true
           grep -l "ALWAYS_ENFORCE" security/selinux/.*.cmd 2>/dev/null | head -3 || true
@@ -204,6 +248,7 @@ jobs:
           cp src/arch/arm64/boot/Image dist/
           cp src/.config dist/kernel.config   # dotfiles are skipped by the release glob
           cp scripts/repack_boot.py dist/
+          [ -f extras-receipt.txt ] && cp extras-receipt.txt dist/
           if [ -n "$VERSION_DATE" ]; then
             cp src/include/config/kernel.release dist/kernel-release.txt
             cp kernel-label-receipt.json dist/

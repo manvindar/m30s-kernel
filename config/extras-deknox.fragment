@@ -1,0 +1,13 @@
+# extras=deknox: Samsung hardening off the way Mint's exynos9610-m30s_core_defconfig has it.
+# Already off in the stock m30sdd defconfig (re-asserted so a later defconfig change cannot turn them on):
+# CONFIG_UH is not set
+# CONFIG_UH_LKMAUTH is not set
+# CONFIG_UH_LKM_BLOCK is not set
+# CONFIG_FIVE is not set
+# CONFIG_PROCA is not set
+# CONFIG_SECURITY_DEFEX is not set
+# CONFIG_SEC_RESTRICT_ROOTING is not set
+# Turned off here (on in stock, off in Mint core):
+# CONFIG_SECURITY_DSMS is not set
+# CONFIG_INTEGRITY is not set
+# Deliberately kept (Mint keeps DDAR/KNOX_NCM; SDP/FSCRYPT_SDP change the on-disk fscrypt context): SDP, FSCRYPT_SDP, DDAR, KNOX_NCM

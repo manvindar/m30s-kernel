@@ -1,0 +1,35 @@
+From 0473adfa0b08e3079a0e4adacb2f81ec37239203 Mon Sep 17 00:00:00 2001
+From: Denis Efremov <efremov@linux.com>
+Date: Thu, 20 Feb 2020 21:53:45 +0300
+Subject: [PATCH] net: wireguard: switch wireguard to n by default
+
+Signed-off-by: Denis Efremov <efremov@linux.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ net/wireguard/Kconfig | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/net/wireguard/Kconfig b/net/wireguard/Kconfig
+index 156e9dbfc051..e4b07763a6e5 100644
+--- a/net/wireguard/Kconfig
++++ b/net/wireguard/Kconfig
+@@ -10,7 +10,7 @@ config WIREGUARD
+ 	select VFPv3 if CPU_V7
+ 	select NEON if CPU_V7
+ 	select KERNEL_MODE_NEON if CPU_V7
+-	default m
++	default n
+ 	help
+ 	  WireGuard is a secure, fast, and easy to use replacement for IPsec
+ 	  that uses modern cryptography and clever networking tricks. It's
+@@ -24,6 +24,7 @@ config WIREGUARD
+ config WIREGUARD_DEBUG
+ 	bool "Debugging checks and verbose messages"
+ 	depends on WIREGUARD
++	default n
+ 	help
+ 	  This will write log messages for handshake and other events
+ 	  that occur for a WireGuard interface. It will also perform some
+-- 
+2.55.0
+

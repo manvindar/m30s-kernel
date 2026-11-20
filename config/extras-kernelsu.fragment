@@ -1,0 +1,4 @@
+# extras=kernelsu: KernelSU v0.9.2 (pinned in the workflow), manual hooks from Mint; KPROBES stays off
+CONFIG_KSU=y
+# CONFIG_KSU_DEBUG is not set
+CONFIG_OVERLAY_FS=y

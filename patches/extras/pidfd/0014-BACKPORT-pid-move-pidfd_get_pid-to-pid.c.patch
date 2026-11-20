@@ -1,0 +1,137 @@
+From d602f96839a890e979444cc0014ffd67310bc956 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Edgar=20Arriaga=20Garc=C3=ADa?= <edgararriaga@google.com>
+Date: Thu, 30 Apr 2020 00:34:09 +0000
+Subject: [PATCH] BACKPORT: pid: move pidfd_get_pid() to pid.c
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+process_madvise syscall needs pidfd_get_pid function to translate pidfd to
+pid so this patch move the function to kernel/pid.c.
+
+Link: http://lkml.kernel.org/r/20200302193630.68771-5-minchan@kernel.org
+Signed-off-by: Minchan Kim <minchan@kernel.org>
+Reviewed-by: Suren Baghdasaryan <surenb@google.com>
+Suggested-by: Alexander Duyck <alexander.h.duyck@linux.intel.com>
+Reviewed-by: Alexander Duyck <alexander.h.duyck@linux.intel.com>
+Acked-by: Christian Brauner <christian.brauner@ubuntu.com>
+Reviewed-by: Vlastimil Babka <vbabka@suse.cz>
+Cc: Jens Axboe <axboe@kernel.dk>
+Cc: Jann Horn <jannh@google.com>
+Cc: Brian Geffon <bgeffon@google.com>
+Cc: Daniel Colascione <dancol@google.com>
+Cc: Joel Fernandes <joel@joelfernandes.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: John Dias <joaodias@google.com>
+Cc: Kirill Tkhai <ktkhai@virtuozzo.com>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Oleksandr Natalenko <oleksandr@redhat.com>
+Cc: Sandeep Patil <sspatil@google.com>
+Cc: SeongJae Park <sj38.park@gmail.com>
+Cc: SeongJae Park <sjpark@amazon.de>
+Cc: Shakeel Butt <shakeelb@google.com>
+Cc: Sonny Rao <sonnyrao@google.com>
+Cc: Tim Murray <timmurray@google.com>
+Cc: <linux-man@vger.kernel.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+(cherry picked from 1aa92cd31c1c032ddfed27e79d646bbb429e9b52)
+
+Conflicts:
+	kernel/pid.c
+1. included linux/file.h library which contains definition for
+struct fd.
+
+Bug: 153444106
+Test: Built kernel
+
+Signed-off-by: Edgar Arriaga García <edgararriaga@google.com>
+Change-Id: I9383bebe450adb2475a990808e7cafa8cd631afa
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ include/linux/pid.h |  1 +
+ kernel/exit.c       | 17 -----------------
+ kernel/pid.c        | 20 ++++++++++++++++++++
+ 3 files changed, 21 insertions(+), 17 deletions(-)
+
+diff --git a/include/linux/pid.h b/include/linux/pid.h
+index 66bbe1361ef4..4255f686178c 100644
+--- a/include/linux/pid.h
++++ b/include/linux/pid.h
+@@ -83,6 +83,7 @@ extern const struct file_operations pidfd_fops;
+ struct file;
+ 
+ extern struct pid *pidfd_pid(const struct file *file);
++struct pid *pidfd_get_pid(unsigned int fd, unsigned int *flags);
+ 
+ static inline struct pid *get_pid(struct pid *pid)
+ {
+diff --git a/kernel/exit.c b/kernel/exit.c
+index d3c5085daab6..b137dcd722d4 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -1567,23 +1567,6 @@ end:
+ 	return retval;
+ }
+ 
+-static struct pid *pidfd_get_pid(unsigned int fd)
+-{
+-	struct fd f;
+-	struct pid *pid;
+-
+-	f = fdget(fd);
+-	if (!f.file)
+-		return ERR_PTR(-EBADF);
+-
+-	pid = pidfd_pid(f.file);
+-	if (!IS_ERR(pid))
+-		get_pid(pid);
+-
+-	fdput(f);
+-	return pid;
+-}
+-
+ static long kernel_waitid(int which, pid_t upid, struct waitid_info *infop,
+ 			  int options, struct rusage *ru)
+ {
+diff --git a/kernel/pid.c b/kernel/pid.c
+index 7d7bfbcd263f..3036434e426e 100644
+--- a/kernel/pid.c
++++ b/kernel/pid.c
+@@ -41,6 +41,7 @@
+ #include <linux/anon_inodes.h>
+ #include <linux/sched/signal.h>
+ #include <linux/sched/task.h>
++#include <linux/file.h>
+ 
+ #define pid_hashfn(nr, ns)	\
+ 	hash_long((unsigned long)nr + (unsigned long)ns, pidhash_shift)
+@@ -569,6 +570,25 @@ struct pid *find_ge_pid(int nr, struct pid_namespace *ns)
+ 	return pid;
+ }
+ 
++struct pid *pidfd_get_pid(unsigned int fd, unsigned int *flags)
++{
++	struct fd f;
++	struct pid *pid;
++
++	f = fdget(fd);
++	if (!f.file)
++		return ERR_PTR(-EBADF);
++
++	pid = pidfd_pid(f.file);
++	if (!IS_ERR(pid)) {
++		get_pid(pid);
++		*flags = f.file->f_flags;
++	}
++
++	fdput(f);
++	return pid;
++}
++
+ /**
+  * pidfd_create() - Create a new pid file descriptor.
+  *
+-- 
+2.55.0
+

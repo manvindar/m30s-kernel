@@ -1,0 +1,315 @@
+From 69f695431b5e5818bb3be678c8091d6471ebc040 Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Mon, 5 Nov 2018 17:40:31 +0000
+Subject: [PATCH] UPSTREAM: Make anon_inodes unconditional
+
+Make the anon_inodes facility unconditional so that it can be used by core
+VFS code.
+
+Signed-off-by: David Howells <dhowells@redhat.com>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+
+(cherry picked from commit dadd2299ab61fc2b55b95b7b3a8f674cdd3b69c9)
+
+Bug: 135608568
+Test: test program using syscall(__NR_sys_pidfd_open,..) and poll()
+Change-Id: I2f97bda4f360d8d05bbb603de839717b3d8067ae
+Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ arch/arm/kvm/Kconfig       |  1 -
+ arch/arm64/kvm/Kconfig     |  1 -
+ arch/mips/kvm/Kconfig      |  1 -
+ arch/powerpc/kvm/Kconfig   |  1 -
+ arch/s390/kvm/Kconfig      |  1 -
+ arch/x86/Kconfig           |  1 -
+ arch/x86/kvm/Kconfig       |  1 -
+ drivers/base/Kconfig       |  1 -
+ drivers/char/tpm/Kconfig   |  1 -
+ drivers/dma-buf/Kconfig    |  1 -
+ drivers/gpio/Kconfig       |  1 -
+ drivers/iio/Kconfig        |  1 -
+ drivers/infiniband/Kconfig |  1 -
+ drivers/vfio/Kconfig       |  1 -
+ fs/Makefile                |  2 +-
+ fs/notify/fanotify/Kconfig |  1 -
+ fs/notify/inotify/Kconfig  |  1 -
+ init/Kconfig               | 10 ----------
+ 18 files changed, 1 insertion(+), 27 deletions(-)
+
+diff --git a/arch/arm/kvm/Kconfig b/arch/arm/kvm/Kconfig
+index f24628db5409..145683572885 100644
+--- a/arch/arm/kvm/Kconfig
++++ b/arch/arm/kvm/Kconfig
+@@ -21,7 +21,6 @@ config KVM
+ 	bool "Kernel-based Virtual Machine (KVM) support"
+ 	depends on MMU && OF
+ 	select PREEMPT_NOTIFIERS
+-	select ANON_INODES
+ 	select ARM_GIC
+ 	select HAVE_KVM_CPU_RELAX_INTERCEPT
+ 	select HAVE_KVM_ARCH_TLB_FLUSH_ALL
+diff --git a/arch/arm64/kvm/Kconfig b/arch/arm64/kvm/Kconfig
+index 13f81f971390..aef1d51395da 100644
+--- a/arch/arm64/kvm/Kconfig
++++ b/arch/arm64/kvm/Kconfig
+@@ -22,7 +22,6 @@ config KVM
+ 	depends on OF
+ 	select MMU_NOTIFIER
+ 	select PREEMPT_NOTIFIERS
+-	select ANON_INODES
+ 	select HAVE_KVM_CPU_RELAX_INTERCEPT
+ 	select HAVE_KVM_ARCH_TLB_FLUSH_ALL
+ 	select KVM_MMIO
+diff --git a/arch/mips/kvm/Kconfig b/arch/mips/kvm/Kconfig
+index b17447ce8873..50e1f7f031fc 100644
+--- a/arch/mips/kvm/Kconfig
++++ b/arch/mips/kvm/Kconfig
+@@ -20,7 +20,6 @@ config KVM
+ 	depends on HAVE_KVM
+ 	select EXPORT_UASM
+ 	select PREEMPT_NOTIFIERS
+-	select ANON_INODES
+ 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
+ 	select KVM_MMIO
+ 	select MMU_NOTIFIER
+diff --git a/arch/powerpc/kvm/Kconfig b/arch/powerpc/kvm/Kconfig
+index 648160334abf..45c691758941 100644
+--- a/arch/powerpc/kvm/Kconfig
++++ b/arch/powerpc/kvm/Kconfig
+@@ -20,7 +20,6 @@ if VIRTUALIZATION
+ config KVM
+ 	bool
+ 	select PREEMPT_NOTIFIERS
+-	select ANON_INODES
+ 	select HAVE_KVM_EVENTFD
+ 	select SRCU
+ 	select KVM_VFIO
+diff --git a/arch/s390/kvm/Kconfig b/arch/s390/kvm/Kconfig
+index 9a4594e0a1ff..76a76f99e4d9 100644
+--- a/arch/s390/kvm/Kconfig
++++ b/arch/s390/kvm/Kconfig
+@@ -21,7 +21,6 @@ config KVM
+ 	prompt "Kernel-based Virtual Machine (KVM) support"
+ 	depends on HAVE_KVM
+ 	select PREEMPT_NOTIFIERS
+-	select ANON_INODES
+ 	select HAVE_KVM_CPU_RELAX_INTERCEPT
+ 	select HAVE_KVM_EVENTFD
+ 	select KVM_ASYNC_PF
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 8fec1585ac7a..c885051a708b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -43,7 +43,6 @@ config X86
+ 	#
+ 	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+ 	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+-	select ANON_INODES
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_DISCARD_MEMBLOCK
+ 	select ARCH_HAS_ACPI_TABLE_UPGRADE	if ACPI
+diff --git a/arch/x86/kvm/Kconfig b/arch/x86/kvm/Kconfig
+index 3df51c287844..2fa316aa4960 100644
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -27,7 +27,6 @@ config KVM
+ 	depends on X86_LOCAL_APIC
+ 	select PREEMPT_NOTIFIERS
+ 	select MMU_NOTIFIER
+-	select ANON_INODES
+ 	select HAVE_KVM_IRQCHIP
+ 	select HAVE_KVM_IRQFD
+ 	select IRQ_BYPASS_MANAGER
+diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
+index 49fd50fccd48..2819b8a51fd0 100644
+--- a/drivers/base/Kconfig
++++ b/drivers/base/Kconfig
+@@ -248,7 +248,6 @@ source "drivers/base/regmap/Kconfig"
+ config DMA_SHARED_BUFFER
+ 	bool
+ 	default n
+-	select ANON_INODES
+ 	select IRQ_WORK
+ 	help
+ 	  This option enables the framework for buffer-sharing between
+diff --git a/drivers/char/tpm/Kconfig b/drivers/char/tpm/Kconfig
+index a30352202f1f..bde9e308c513 100644
+--- a/drivers/char/tpm/Kconfig
++++ b/drivers/char/tpm/Kconfig
+@@ -146,7 +146,6 @@ config TCG_CRB
+ config TCG_VTPM_PROXY
+ 	tristate "VTPM Proxy Interface"
+ 	depends on TCG_TPM
+-	select ANON_INODES
+ 	---help---
+ 	  This driver proxies for an emulated TPM (vTPM) running in userspace.
+ 	  A device /dev/vtpmx is provided that creates a device pair
+diff --git a/drivers/dma-buf/Kconfig b/drivers/dma-buf/Kconfig
+index a7c17ac1c78a..fd57d65d6b8a 100644
+--- a/drivers/dma-buf/Kconfig
++++ b/drivers/dma-buf/Kconfig
+@@ -3,7 +3,6 @@ menu "DMABUF options"
+ config SYNC_FILE
+ 	bool "Explicit Synchronization Framework"
+ 	default n
+-	select ANON_INODES
+ 	select DMA_SHARED_BUFFER
+ 	---help---
+ 	  The Sync File Framework adds explicit syncronization via
+diff --git a/drivers/gpio/Kconfig b/drivers/gpio/Kconfig
+index 3f80f167ed56..6a6c73863d98 100644
+--- a/drivers/gpio/Kconfig
++++ b/drivers/gpio/Kconfig
+@@ -12,7 +12,6 @@ config ARCH_HAVE_CUSTOM_GPIO_H
+ 
+ menuconfig GPIOLIB
+ 	bool "GPIO Support"
+-	select ANON_INODES
+ 	help
+ 	  This enables GPIO support through the generic GPIO library.
+ 	  You only need to enable this, if you also want to enable
+diff --git a/drivers/iio/Kconfig b/drivers/iio/Kconfig
+index b3c8c6ef0dff..cda21e7f8311 100644
+--- a/drivers/iio/Kconfig
++++ b/drivers/iio/Kconfig
+@@ -4,7 +4,6 @@
+ 
+ menuconfig IIO
+ 	tristate "Industrial I/O support"
+-	select ANON_INODES
+ 	help
+ 	  The industrial I/O subsystem provides a unified framework for
+ 	  drivers for many different types of embedded sensors using a
+diff --git a/drivers/infiniband/Kconfig b/drivers/infiniband/Kconfig
+index 27b3c39e586a..1e257a39b247 100644
+--- a/drivers/infiniband/Kconfig
++++ b/drivers/infiniband/Kconfig
+@@ -24,7 +24,6 @@ config INFINIBAND_USER_MAD
+ 
+ config INFINIBAND_USER_ACCESS
+ 	tristate "InfiniBand userspace access (verbs and CM)"
+-	select ANON_INODES
+ 	---help---
+ 	  Userspace InfiniBand access support.  This enables the
+ 	  kernel side of userspace verbs and the userspace
+diff --git a/drivers/vfio/Kconfig b/drivers/vfio/Kconfig
+index c84333eb5eb5..9aa91e736023 100644
+--- a/drivers/vfio/Kconfig
++++ b/drivers/vfio/Kconfig
+@@ -22,7 +22,6 @@ menuconfig VFIO
+ 	tristate "VFIO Non-Privileged userspace driver framework"
+ 	depends on IOMMU_API
+ 	select VFIO_IOMMU_TYPE1 if (X86 || S390 || ARM_SMMU || ARM_SMMU_V3)
+-	select ANON_INODES
+ 	help
+ 	  VFIO provides a framework for secure userspace device drivers.
+ 	  See Documentation/vfio.txt for more details.
+diff --git a/fs/Makefile b/fs/Makefile
+index 08fe716e57c7..cc4cfe98b531 100644
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -25,7 +25,7 @@ obj-$(CONFIG_PROC_DLOG) += dlog_hook.o
+ 
+ obj-y				+= notify/
+ obj-$(CONFIG_EPOLL)		+= eventpoll.o
+-obj-$(CONFIG_ANON_INODES)	+= anon_inodes.o
++obj-y				+= anon_inodes.o
+ obj-$(CONFIG_SIGNALFD)		+= signalfd.o
+ obj-$(CONFIG_TIMERFD)		+= timerfd.o
+ obj-$(CONFIG_EVENTFD)		+= eventfd.o
+diff --git a/fs/notify/fanotify/Kconfig b/fs/notify/fanotify/Kconfig
+index e5f911bd80d2..390827fa82ef 100644
+--- a/fs/notify/fanotify/Kconfig
++++ b/fs/notify/fanotify/Kconfig
+@@ -1,7 +1,6 @@
+ config FANOTIFY
+ 	bool "Filesystem wide access notification"
+ 	select FSNOTIFY
+-	select ANON_INODES
+ 	default n
+ 	---help---
+ 	   Say Y here to enable fanotify support.  fanotify is a file access
+diff --git a/fs/notify/inotify/Kconfig b/fs/notify/inotify/Kconfig
+index b981fc0c8379..0161c74e76e2 100644
+--- a/fs/notify/inotify/Kconfig
++++ b/fs/notify/inotify/Kconfig
+@@ -1,6 +1,5 @@
+ config INOTIFY_USER
+ 	bool "Inotify support for userspace"
+-	select ANON_INODES
+ 	select FSNOTIFY
+ 	default y
+ 	---help---
+diff --git a/init/Kconfig b/init/Kconfig
+index 07fc4cd5ecfd..fe7131b03ef0 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1242,9 +1242,6 @@ config LD_DEAD_CODE_DATA_ELIMINATION
+ config SYSCTL
+ 	bool
+ 
+-config ANON_INODES
+-	bool
+-
+ config HAVE_UID16
+ 	bool
+ 
+@@ -1482,14 +1479,12 @@ config HAVE_FUTEX_CMPXCHG
+ config EPOLL
+ 	bool "Enable eventpoll support" if EXPERT
+ 	default y
+-	select ANON_INODES
+ 	help
+ 	  Disabling this option will cause the kernel to be built without
+ 	  support for epoll family of system calls.
+ 
+ config SIGNALFD
+ 	bool "Enable signalfd() system call" if EXPERT
+-	select ANON_INODES
+ 	default y
+ 	help
+ 	  Enable the signalfd() system call that allows to receive signals
+@@ -1499,7 +1494,6 @@ config SIGNALFD
+ 
+ config TIMERFD
+ 	bool "Enable timerfd() system call" if EXPERT
+-	select ANON_INODES
+ 	default y
+ 	help
+ 	  Enable the timerfd() system call that allows to receive timer
+@@ -1509,7 +1503,6 @@ config TIMERFD
+ 
+ config EVENTFD
+ 	bool "Enable eventfd() system call" if EXPERT
+-	select ANON_INODES
+ 	default y
+ 	help
+ 	  Enable the eventfd() system call that allows to receive both
+@@ -1520,7 +1513,6 @@ config EVENTFD
+ # syscall, maps, verifier
+ config BPF_SYSCALL
+ 	bool "Enable bpf() system call"
+-	select ANON_INODES
+ 	select BPF
+ 	default n
+ 	help
+@@ -1565,7 +1557,6 @@ config ADVISE_SYSCALLS
+ 
+ config USERFAULTFD
+ 	bool "Enable userfaultfd() system call"
+-	select ANON_INODES
+ 	depends on MMU
+ 	help
+ 	  Enable the userfaultfd() system call that allows to intercept and
+@@ -1624,7 +1615,6 @@ config PERF_EVENTS
+ 	bool "Kernel performance events and counters"
+ 	default y if PROFILING
+ 	depends on HAVE_PERF_EVENTS
+-	select ANON_INODES
+ 	select IRQ_WORK
+ 	select SRCU
+ 	help
+-- 
+2.55.0
+

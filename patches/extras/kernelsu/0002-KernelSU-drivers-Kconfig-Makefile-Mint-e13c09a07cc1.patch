@@ -1,0 +1,32 @@
+From e13c09a07cc1656a1a780581db43d79830cff76e Mon Sep 17 00:00:00 2001
+From: Rushi Ranpise <136841749+rushizgithub@users.noreply.github.com>
+Date: Tue, 27 Jun 2023 19:47:57 +0000
+Subject: [PATCH] add ksu as submodule
+
+---
+ drivers/Kconfig  | 1 +
+ drivers/Makefile | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 6541a9dba28e..b5257f2852ca 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -236,4 +236,5 @@ source "drivers/samsung/Kconfig"
+ 
+ source "drivers/security/samsung/tzic/Kconfig"
+ 
++source "drivers/kernelsu/Kconfig"
+ endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+index 761e3d67a068..797e22247ff6 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -214,3 +214,4 @@ obj-$(CONFIG_SEC_EXT)		+= samsung/
+ 
+ #TZIC
+ obj-y  += security/samsung/tzic/
++obj-$(CONFIG_KSU) += kernelsu/
+-- 
+2.55.0
+

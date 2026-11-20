@@ -1,0 +1,126 @@
+From 36578719fff43288daa1d9f7f99f16befc85907c Mon Sep 17 00:00:00 2001
+From: Joel Fernandes <joelaf@google.com>
+Date: Wed, 19 Dec 2018 09:54:40 -0800
+Subject: [PATCH] BACKPORT: mm: Add an F_SEAL_FUTURE_WRITE seal to memfd
+
+Android uses ashmem for sharing memory regions. We are looking forward
+to migrating all usecases of ashmem to memfd so that we can possibly
+remove the ashmem driver in the future from staging while also
+benefiting from using memfd and contributing to it. Note staging drivers
+are also not ABI and generally can be removed at anytime.
+
+One of the main usecases Android has is the ability to create a region
+and mmap it as writeable, then add protection against making any
+"future" writes while keeping the existing already mmap'ed
+writeable-region active.  This allows us to implement a usecase where
+receivers of the shared memory buffer can get a read-only view, while
+the sender continues to write to the buffer.
+See CursorWindow documentation in Android for more details:
+https://developer.android.com/reference/android/database/CursorWindow
+
+This usecase cannot be implemented with the existing F_SEAL_WRITE seal.
+To support the usecase, this patch adds a new F_SEAL_FUTURE_WRITE seal
+which prevents any future mmap and write syscalls from succeeding while
+keeping the existing mmap active.
+
+Verified with test program at: https://lore.kernel.org/patchwork/patch/1008117/
+Backport link: https://lore.kernel.org/patchwork/patch/1014892/
+Bug: 113362644
+Change-Id: If7424db3b64372932d455f0219cd9df613fec1d4
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Joel Fernandes <joelaf@google.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ include/uapi/linux/fcntl.h       |  1 +
+ mm/shmem.c                       | 29 +++++++++++++++++++++++++----
+ tools/include/uapi/linux/fcntl.h |  1 +
+ 3 files changed, 27 insertions(+), 4 deletions(-)
+
+diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
+index 277e786561f1..de9e1efdcb6b 100644
+--- a/include/uapi/linux/fcntl.h
++++ b/include/uapi/linux/fcntl.h
+@@ -52,6 +52,7 @@
+ #define F_SEAL_SHRINK	0x0002	/* prevent file from shrinking */
+ #define F_SEAL_GROW	0x0004	/* prevent file from growing */
+ #define F_SEAL_WRITE	0x0008	/* prevent writes */
++#define F_SEAL_FUTURE_WRITE	0x0010	/* prevent writes */
+ /* (1U << 31) is reserved for signed error codes */
+ 
+ /*
+diff --git a/mm/shmem.c b/mm/shmem.c
+index b76282560a56..f9a33d1b5565 100644
+--- a/mm/shmem.c
++++ b/mm/shmem.c
+@@ -2149,6 +2149,25 @@ out_nomem:
+ 
+ static int shmem_mmap(struct file *file, struct vm_area_struct *vma)
+ {
++	struct shmem_inode_info *info = SHMEM_I(file_inode(file));
++
++
++	if (info->seals & F_SEAL_FUTURE_WRITE) {
++		/*
++		 * New PROT_WRITE and MAP_SHARED mmaps are not allowed when
++		 * "future write" seal active.
++		 */
++		if ((vma->vm_flags & VM_SHARED) && (vma->vm_flags & VM_WRITE))
++			return -EPERM;
++
++		/*
++		 * Since the F_SEAL_FUTURE_WRITE seals allow for a MAP_SHARED
++		 * read-only mapping, take care to not allow mprotect to revert
++		 * protections.
++		 */
++		vma->vm_flags &= ~(VM_MAYWRITE);
++	}
++
+ 	file_accessed(file);
+ 	vma->vm_ops = &shmem_vm_ops;
+ 	if (IS_ENABLED(CONFIG_TRANSPARENT_HUGE_PAGECACHE) &&
+@@ -2409,8 +2428,9 @@ shmem_write_begin(struct file *file, struct address_space *mapping,
+ 	pgoff_t index = pos >> PAGE_SHIFT;
+ 
+ 	/* i_mutex is held by caller */
+-	if (unlikely(info->seals & (F_SEAL_WRITE | F_SEAL_GROW))) {
+-		if (info->seals & F_SEAL_WRITE)
++	if (unlikely(info->seals & (F_SEAL_GROW |
++				   F_SEAL_WRITE | F_SEAL_FUTURE_WRITE))) {
++		if (info->seals & (F_SEAL_WRITE | F_SEAL_FUTURE_WRITE))
+ 			return -EPERM;
+ 		if ((info->seals & F_SEAL_GROW) && pos + len > inode->i_size)
+ 			return -EPERM;
+@@ -2767,7 +2787,8 @@ continue_resched:
+ #define F_ALL_SEALS (F_SEAL_SEAL | \
+ 		     F_SEAL_SHRINK | \
+ 		     F_SEAL_GROW | \
+-		     F_SEAL_WRITE)
++		     F_SEAL_WRITE | \
++		     F_SEAL_FUTURE_WRITE)
+ 
+ int shmem_add_seals(struct file *file, unsigned int seals)
+ {
+@@ -2894,7 +2915,7 @@ static long shmem_fallocate(struct file *file, int mode, loff_t offset,
+ 		DECLARE_WAIT_QUEUE_HEAD_ONSTACK(shmem_falloc_waitq);
+ 
+ 		/* protected by i_mutex */
+-		if (info->seals & F_SEAL_WRITE) {
++		if (info->seals & (F_SEAL_WRITE | F_SEAL_FUTURE_WRITE)) {
+ 			error = -EPERM;
+ 			goto out;
+ 		}
+diff --git a/tools/include/uapi/linux/fcntl.h b/tools/include/uapi/linux/fcntl.h
+index 6448cdd9a350..44cdb652e0da 100644
+--- a/tools/include/uapi/linux/fcntl.h
++++ b/tools/include/uapi/linux/fcntl.h
+@@ -41,6 +41,7 @@
+ #define F_SEAL_SHRINK	0x0002	/* prevent file from shrinking */
+ #define F_SEAL_GROW	0x0004	/* prevent file from growing */
+ #define F_SEAL_WRITE	0x0008	/* prevent writes */
++#define F_SEAL_FUTURE_WRITE	0x0010	/* prevent future writes */
+ /* (1U << 31) is reserved for signed error codes */
+ 
+ /*
+-- 
+2.55.0
+

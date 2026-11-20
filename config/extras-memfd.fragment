@@ -1,0 +1,2 @@
+# extras=memfd: F_SEAL_FUTURE_WRITE lives in mm/shmem.c (memfd_create)
+CONFIG_SHMEM=y

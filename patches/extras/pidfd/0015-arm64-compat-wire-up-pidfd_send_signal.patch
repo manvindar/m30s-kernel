@@ -1,0 +1,31 @@
+From 81c988d50e9722585175679f1fba6faa9aee8adf Mon Sep 17 00:00:00 2001
+From: Manvindar Singh <manvindarsingh123@gmail.com>
+Date: Fri, 20 Nov 2026 13:55:06 -0700
+Subject: [PATCH] arm64: compat: wire up pidfd_send_signal
+
+The pidfd backport wires pidfd_send_signal (424) only into the native
+asm-generic table. Add it to the AArch32 compat table as upstream arm
+does; the syscall already handles compat siginfo through
+copy_siginfo_from_user_any().
+
+Signed-off-by: Manvindar Singh <manvindarsingh123@gmail.com>
+---
+ arch/arm64/include/asm/unistd32.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index ecc1154e7..b81507012 100755
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -817,6 +817,8 @@ __SYSCALL(__NR_pkey_alloc, sys_pkey_alloc)
+ __SYSCALL(__NR_pkey_free, sys_pkey_free)
+ #define __NR_statx 397
+ __SYSCALL(__NR_statx, sys_statx)
++#define __NR_pidfd_send_signal 424
++__SYSCALL(__NR_pidfd_send_signal, sys_pidfd_send_signal)
+ #define __NR_pidfd_open 434
+ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
+ 
+-- 
+2.55.0
+
