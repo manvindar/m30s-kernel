@@ -37,7 +37,7 @@ on:
         description: Optional YYYYMMDD metadata label on the exact Android 17 baseline; requires fragment=true and perf/boost/hdr=false
         default: ''
       extras:
-        description: Mint-port extras, comma list of memfd,pidfd,wireguard,deknox,kernelsu (or all); requires fragment=true, no version_date/performance_profile
+        description: Mint-port extras, comma list of memfd,pidfd,wireguard,deknox,kernelsu,lto ('all' = all but lto); requires fragment=true, no version_date/performance_profile
         default: ''
 permissions:
   contents: write
@@ -49,7 +49,9 @@ env:
   VERSION_DATE: ${{ inputs.version_date }}
   CPU_MALI: ${{ inputs.cpu_mali }}
   EXTRAS: ${{ inputs.extras }}
-  EXTRAS_ORDER: memfd pidfd wireguard deknox kernelsu   # patch/fragment order, independent of input order
+  EXTRAS_ORDER: memfd pidfd wireguard deknox kernelsu lto   # patch/fragment order, independent of input order
+  PROTON_URL: https://github.com/kdrag0n/proton-clang/archive/9fb011b183fe7e69b04b873ef6533b4b077e3c5e.tar.gz   # proton-clang 20210522 (clang 13), as Mint; LTO only
+  PROTON_SHA256: 7358f655bd5af997990f208212da2687a9cd4d53cb4f1811d6035487e04076b8
   KSU_COMMIT: 3291538446b7fccec46fa52775e6bf594c77b9f4  # tiann/KernelSU v0.9.2, last line Mint ships; supports non-GKI manual hooks
 jobs:
   build:
@@ -103,7 +105,7 @@ jobs:
           mkdir src && tar -xzf Kernel.tar.gz -C src && rm Kernel.tar.gz
           if [ -n "$EXTRAS" ]; then   # extras never touch the dated baseline or the reviewed profiles
             test "${{ inputs.fragment }}" = true && test -z "$VERSION_DATE" && test "$PERFORMANCE_PROFILE" = false && test "$CPU_MALI" = false
-            [ "$EXTRAS" = all ] && EXTRAS="$EXTRAS_ORDER"
+            [ "$EXTRAS" = all ] && EXTRAS="${EXTRAS_ORDER% lto}"
             for x in ${EXTRAS//,/ }; do case " $EXTRAS_ORDER " in *" $x "*) ;; *) echo "unknown extra: $x"; exit 1;; esac; done
             echo "EXTRAS_LIST=${EXTRAS//,/ }" >> "$GITHUB_ENV"
             if [[ " ${EXTRAS//,/ } " == *" kernelsu "* ]]; then   # full history: KernelSU's Makefile derives KSU_VERSION from the commit count
@@ -111,6 +113,12 @@ jobs:
               git -C src/KernelSU checkout -q "$KSU_COMMIT"
               test "$(git -C src/KernelSU rev-parse HEAD)" = "$KSU_COMMIT"
               ln -s ../KernelSU/kernel src/drivers/kernelsu
+            fi
+            if [[ " ${EXTRAS//,/ } " == *" lto "* ]]; then   # separate toolchain, pinned by URL + sha256, not cached
+              curl -sfL --retry 6 --retry-all-errors --retry-delay 5 -o proton.tar.gz "$PROTON_URL"
+              echo "$PROTON_SHA256  proton.tar.gz" | sha256sum -c -
+              mkdir proton && tar -xzf proton.tar.gz --strip-components=1 -C proton && rm proton.tar.gz
+              proton/bin/clang --version | head -1
             fi
           fi
           # Samsung's Makefile looks for its toolchains below $(srctree)/toolchain
@@ -156,6 +164,11 @@ jobs:
             cp ../boost/input_boost_m30s.c drivers/input/
             echo 'obj-$(CONFIG_INPUT_BOOST_M30S) += input_boost_m30s.o' >> drivers/input/Makefile
             cat ../boost/Kconfig.snippet >> drivers/input/Kconfig
+          fi
+          if [[ " $EXTRAS_LIST " == *" lto "* ]]; then   # LTO variant: proton clang 13 + its binutils (gold) and LLVMgold.so
+            P=$GITHUB_WORKSPACE/proton
+            export PATH=$P/bin:$PATH LD_LIBRARY_PATH=$P/lib
+            M="$M CC=$P/bin/clang CROSS_COMPILE=$P/bin/aarch64-linux-gnu- CROSS_COMPILE_ARM32=$P/bin/arm-linux-gnueabi-"
           fi
           find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
           sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
@@ -212,6 +225,8 @@ jobs:
             for s in $need; do grep -qE " [Tt] $s$" System.map && echo "linked: $s" || { echo "MISSING SYMBOL: $s"; exit 1; }; done
             if [[ " $EXTRAS_LIST " == *" memfd "* ]]; then grep -q F_SEAL_FUTURE_WRITE include/uapi/linux/fcntl.h && grep -q 'info->seals & F_SEAL_FUTURE_WRITE' mm/shmem.c && echo "memfd: F_SEAL_FUTURE_WRITE in shmem" || { echo 'MISSING: F_SEAL_FUTURE_WRITE'; exit 1; }; fi
             grep -E "^CONFIG_(USERFAULTFD|WIREGUARD|KSU|OVERLAY_FS|SECURITY_DSMS|INTEGRITY|FIVE|PROCA|SECURITY_DEFEX|UH|KPROBES)=" .config || true
+            grep -m1 "KernelSU version" ../build.log || true
+            if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -q "^CONFIG_LTO_CLANG=y" .config || { echo "LTO NOT ENABLED"; exit 1; }; grep LINUX_COMPILER include/generated/compile.h; fi
             echo "EXTRAS=$EXTRAS_LIST" > ../extras-receipt.txt; sha256sum arch/arm64/boot/Image >> ../extras-receipt.txt
           fi
           echo "--- SELinux ALWAYS_ENFORCE (Samsung sets it only for user/ship builds):"

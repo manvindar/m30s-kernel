@@ -1,0 +1,5 @@
+# extras=lto: clang full LTO (android-4.14 LTO_CLANG already in the Samsung tree: gold + LLVMgold).
+# Only built with the pinned proton-clang 13 toolchain; Samsung clang-4639204 is never used for this.
+CONFIG_LTO_CLANG=y
+# CONFIG_LTO_NONE is not set
+# CONFIG_CFI_CLANG is not set
