@@ -209,7 +209,7 @@ jobs:
             export KBUILD_BUILD_TIMESTAMP="$(python3 -c 'import datetime,sys; print(datetime.datetime.strptime(sys.argv[1], "%Y%m%d").strftime("%a %b %d 00:00:00 UTC %Y"))' "$VERSION_DATE")"
             M="$M LOCALVERSION="
           fi
-          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; echo "--- tail of build.log:"; tail -40 ../build.log | cut -c1-300; if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -B8 "assembler command failed" ../build.log | head -40; make $M V=1 scripts/mod/empty.o 2>&1 | tail -25; fi; exit 1; }
+          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; echo "--- tail of build.log:"; tail -40 ../build.log | cut -c1-300; if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -B8 "assembler command failed" ../build.log | head -40; make $M V=1 scripts/mod/empty.o 2>&1 | tail -25; fi; if [ -f vmlinux ]; then echo "--- FMP marker symbols in vmlinux:"; readelf -sW vmlinux | grep -E "(first|last)_fmp_|builtime_fmp|integrity_fmp|fmp_buildtime" | head -30; for a in $(readelf -sW vmlinux | awk '/ (first|last)_fmp_rodata$/ {print $2}'); do echo "--- symbols at $a:"; readelf -sW vmlinux | grep -F " $a " | head; done; fi; exit 1; }
           if [ -n "$VERSION_DATE" ]; then
             test "$(cat include/config/kernel.release)" = "4.14.113-perf-$VERSION_DATE"
             python3 - <<'PYBANNER'
