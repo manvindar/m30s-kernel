@@ -3,7 +3,3 @@
 CONFIG_LTO_CLANG=y
 # CONFIG_LTO_NONE is not set
 # CONFIG_CFI_CLANG is not set
-# Samsung FMP FIPS integrity HMAC is computed for the stock-compiled code; with LTO the check fails and the default stock config panics at 2.3 s
-# (exynos_fmp_fips_init: Panic due to FMP self test for FIPS KAT). Only set the FIPS node to zero on failure instead of panicking.
-CONFIG_NODE_FOR_SELFTEST_FAIL=y
-# CONFIG_PANIC_FOR_SELFTEST_FAIL is not set

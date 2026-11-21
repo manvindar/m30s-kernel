@@ -232,6 +232,28 @@ jobs:
             grep -E "^CONFIG_(USERFAULTFD|SCHED_EMS|SCHED_TUNE|WIREGUARD|KSU|OVERLAY_FS|SECURITY_DSMS|INTEGRITY|FIVE|PROCA|SECURITY_DEFEX|UH|KPROBES)=" .config || true
             grep -m1 "KernelSU version" ../build.log || true
             if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -q "^CONFIG_LTO_CLANG=y" .config || { echo "LTO NOT ENABLED"; exit 1; }; grep LINUX_COMPILER include/generated/compile.h; fi
+            if [[ " $EXTRAS_LIST " == *" lto "* ]]; then   # FMP FIPS integrity evidence: the HMAC range between first/last_fmp_* must hold only FMP objects' symbols
+              grep -E "FIPS|fips" ../build.log | head -5 || true
+              NM=$P/bin/aarch64-linux-gnu-nm
+              { echo "FIPS FMP integrity evidence (run $GITHUB_RUN_ID, commit $GITHUB_SHA)"; grep -E "^CONFIG_(EXYNOS_FMP_FIPS|PANIC_FOR_SELFTEST_FAIL|NODE_FOR_SELFTEST_FAIL|LTO_CLANG)=" .config; } > ../fmp-integrity-evidence.txt
+              $NM -n vmlinux > ../vmlinux.nm
+              (cd drivers/crypto/fmp && for o in *.o; do $NM --defined-only "$o"; done) | awk '{print $3}' | sort -u > ../fmp-own-symbols.txt
+              python3 - <<'PYFMP' || exit 1
+          import sys
+          syms = [l.split() for l in open('../vmlinux.nm') if len(l.split()) == 3]
+          own = set(open('../fmp-own-symbols.txt').read().split())
+          addr = {n: int(a, 16) for a, t, n in syms}
+          out = open('../fmp-integrity-evidence.txt', 'a'); bad = 0
+          for sec, first, last in (('.text', 'first_fmp_text', 'last_fmp_text'), ('.rodata', 'first_fmp_rodata', 'last_fmp_rodata'), ('init.text', 'first_fmp_init', 'last_fmp_init')):
+              lo, hi = addr[first], addr[last]
+              inside = [n for a, t, n in syms if lo <= int(a, 16) <= hi]
+              foreign = [n for n in inside if n not in own and n not in (first, last)]
+              out.write('%s: %s=%x %s=%x span=%d bytes, %d symbols in range, %d foreign: %s\n' % (sec, first, lo, last, hi, hi - lo, len(inside), len(foreign), ' '.join(foreign[:20])))
+              bad += len(foreign) + (1 if hi <= lo else 0)
+          out.write('RESULT: %s\n' % ('OK, only FMP symbols inside the HMAC ranges' if not bad else 'FAIL, foreign code inside the HMAC range'))
+          out.close(); print(open('../fmp-integrity-evidence.txt').read()); sys.exit(1 if bad else 0)
+          PYFMP
+            fi
             echo "EXTRAS=$EXTRAS_LIST" > ../extras-receipt.txt; sha256sum arch/arm64/boot/Image >> ../extras-receipt.txt
           fi
           echo "--- SELinux ALWAYS_ENFORCE (Samsung sets it only for user/ship builds):"
@@ -269,6 +291,7 @@ jobs:
           cp src/.config dist/kernel.config   # dotfiles are skipped by the release glob
           cp scripts/repack_boot.py dist/
           [ -f extras-receipt.txt ] && cp extras-receipt.txt dist/
+          [ -f fmp-integrity-evidence.txt ] && cp fmp-integrity-evidence.txt dist/
           if [ -n "$VERSION_DATE" ]; then
             cp src/include/config/kernel.release dist/kernel-release.txt
             cp kernel-label-receipt.json dist/

@@ -1,0 +1,18 @@
+From: manvindar <noreply@users.noreply.github.com>
+Subject: [PATCH] fmp: build the FMP FIPS objects without LTO
+
+The FMP FIPS integrity HMAC covers the bytes between the first_file.o and
+last_file.o markers. LTO reorders and merges code across files, so the
+covered range no longer matches the FMP code and the check fails at boot.
+---
+--- a/drivers/crypto/fmp/Makefile
++++ b/drivers/crypto/fmp/Makefile
+@@ -20,3 +20,8 @@
+ #obj-y += fmp_fips_func_test.o
+ obj-$(CONFIG_EXYNOS_FMP_FIPS) += last_file.o
+ obj-$(CONFIG_EXYNOS_FMP_FIPS) += fips_out.o
++# extras=lto: the FMP FIPS integrity HMAC (scripts/fmp/fips_fmp_integrity.py) covers the bytes between first_file.o and last_file.o
++# markers in .text/.rodata/.init.text. LTO reorders and merges functions across files, so keep every FMP object out of LTO.
++FMP_NO_LTO_OBJS := smu.o first_file.o fmp.o fmp_test.o fmp_fips_main.o fmp_fips_fops.o fmp_fips_selftest.o \
++		fmp_fips_integrity.o hmac-sha256.o fmp_fips_cipher.o sha256.o last_file.o fips_out.o
++$(foreach o,$(FMP_NO_LTO_OBJS),$(eval CFLAGS_$(o) += $$(DISABLE_LTO)))
