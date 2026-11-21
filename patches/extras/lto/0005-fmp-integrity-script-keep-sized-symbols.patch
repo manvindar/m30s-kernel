@@ -1,0 +1,18 @@
+From: manvindar <noreply@users.noreply.github.com>
+Subject: [PATCH] scripts/fmp: keep sized symbols when a zero-size symbol shares the address
+
+get_symbols() keys symbols by address, so with FMP objects outside LTO a zero-size
+symbol (vdso_end) at the same address as first_fmp_rodata replaced it and
+make_integrity() crashed on a missing first_fmp_rodata.
+---
+--- a/scripts/fmp/ELF.py
++++ b/scripts/fmp/ELF.py
+@@ -137,6 +137,8 @@
+                         size = int(size, 16)
+                     else:
+                         size = int(size, 10)
++                    if size == 0 and int(line[0], 16) in self.__symbols:
++                        continue  # a zero-size marker (e.g. vdso_end) must not hide a sized symbol at the same address
+                     self.__symbols[int(line[0], 16)] = Symbol(addr=int(line[0], 16), size=size, sym_type=line[2],
+                                                               bind=line[3], visibility=line[4], ndx=line[5],
+                                                               name=line[6])

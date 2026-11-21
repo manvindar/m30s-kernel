@@ -7,12 +7,13 @@ covered range no longer matches the FMP code and the check fails at boot.
 ---
 --- a/drivers/crypto/fmp/Makefile
 +++ b/drivers/crypto/fmp/Makefile
-@@ -20,3 +20,8 @@
+@@ -20,3 +20,9 @@
  #obj-y += fmp_fips_func_test.o
  obj-$(CONFIG_EXYNOS_FMP_FIPS) += last_file.o
  obj-$(CONFIG_EXYNOS_FMP_FIPS) += fips_out.o
 +# extras=lto: the FMP FIPS integrity HMAC (scripts/fmp/fips_fmp_integrity.py) covers the bytes between first_file.o and last_file.o
-+# markers in .text/.rodata/.init.text. LTO reorders and merges functions across files, so keep every FMP object out of LTO.
++# markers in .text/.rodata/.init.text. LTO reorders and merges functions across files, so keep every FMP object out of LTO; the LTO build's
++# -ffunction-sections/-fdata-sections would also put each FMP function/object in its own section outside the markers (empty HMAC range).
 +FMP_NO_LTO_OBJS := smu.o first_file.o fmp.o fmp_test.o fmp_fips_main.o fmp_fips_fops.o fmp_fips_selftest.o \
 +		fmp_fips_integrity.o hmac-sha256.o fmp_fips_cipher.o sha256.o last_file.o fips_out.o
-+$(foreach o,$(FMP_NO_LTO_OBJS),$(eval CFLAGS_$(o) += $$(DISABLE_LTO)))
++$(foreach o,$(FMP_NO_LTO_OBJS),$(eval CFLAGS_$(o) += $$(DISABLE_LTO) -fno-function-sections -fno-data-sections))
