@@ -173,6 +173,7 @@ jobs:
             export PATH=$P/bin:$PATH LD_LIBRARY_PATH=$P/lib
             printf '#!/bin/sh\nexec %s -nostdlib "$@"\n' "$P/bin/aarch64-linux-gnu-ld.gold" > $P/gold && chmod +x $P/gold   # proton gold otherwise scans its build host's /root/build/... lib dir
             M="$M CC=$P/bin/clang LDGOLD=$P/gold CROSS_COMPILE=$P/bin/aarch64-linux-gnu- CROSS_COMPILE_ARM32=$P/bin/arm-linux-gnueabi- GCC_TOOLCHAIN_DIR=$P/aarch64-linux-gnu/bin/ KCFLAGS=-Wno-error"   # Samsung builds with -Werror; clang 13 warns far more than clang 6
+            echo 'KBUILD_CFLAGS += -mstrict-align' >> arch/arm64/Makefile   # clang 13 emits unaligned accesses that fault on device (MMIO) memory, e.g. fvmap_init data abort (DFSC 0x21); clang 6 did not
           fi
           find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
           sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
