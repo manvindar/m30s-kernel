@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Vincent Guittot <vincent.guittot@linaro.org>
+Date: Thu, 7 Jan 2021 11:33:24 +0100
+Subject: [PATCH] sched/fair: Don't set LBF_ALL_PINNED unnecessarily
+
+Setting LBF_ALL_PINNED during active load balance is only valid when there
+is only 1 running task on the rq otherwise this ends up increasing the
+balance interval whereas other tasks could migrate after the next interval
+once they become cache-cold as an example.
+
+LBF_ALL_PINNED flag is now always set it by default. It is then cleared
+when we find one task that can be pulled when calling detach_tasks() or
+during active migration.
+
+Signed-off-by: Vincent Guittot <vincent.guittot@linaro.org>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Valentin Schneider <valentin.schneider@arm.com>
+Acked-by: Mel Gorman <mgorman@suse.de>
+Link: https://lkml.kernel.org/r/20210107103325.30851-3-vincent.guittot@linaro.org
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/fair.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 32f7c4a07..7c06c6e3b 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -10655,6 +10655,8 @@ redo:
+ 	env.src_rq = busiest;
+ 
+ 	ld_moved = 0;
++	/* Clear this flag as soon as we find a pullable task */
++	env.flags |= LBF_ALL_PINNED;
+ 	if (busiest->nr_running > 1) {
+ 		/*
+ 		 * Attempt to move tasks. If find_busiest_group has found
+@@ -10662,7 +10664,6 @@ redo:
+ 		 * still unbalanced. ld_moved simply stays zero, so it is
+ 		 * correctly treated as an imbalance.
+ 		 */
+-		env.flags |= LBF_ALL_PINNED;
+ 		env.loop_max  = min(sysctl_sched_nr_migrate, busiest->nr_running);
+ 
+ more_balance:
+@@ -10788,10 +10789,12 @@ more_balance:
+ 			if (!cpumask_test_cpu(this_cpu, &busiest->curr->cpus_allowed)) {
+ 				raw_spin_unlock_irqrestore(&busiest->lock,
+ 							    flags);
+-				env.flags |= LBF_ALL_PINNED;
+ 				goto out_one_pinned;
+ 			}
+ 
++			/* Record that we found at least one task that could run on this_cpu */
++			env.flags &= ~LBF_ALL_PINNED;
++
+ 			/*
+ 			 * ->active_balance synchronizes accesses to
+ 			 * ->active_balance_work.  Once set, it's cleared
+-- 
+2.55.0
+

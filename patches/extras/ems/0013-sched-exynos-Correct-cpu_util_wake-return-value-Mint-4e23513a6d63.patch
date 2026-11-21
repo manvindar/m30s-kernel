@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Diep Quynh <remilia.1505@gmail.com>
+Date: Fri, 22 Oct 2021 19:51:23 +0700
+Subject: [PATCH] sched: exynos: Correct cpu_util_wake() return value
+
+Signed-off-by: Diep Quynh <remilia.1505@gmail.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/ems/core.c | 2 +-
+ kernel/sched/ems/ems.h  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/sched/ems/core.c b/kernel/sched/ems/core.c
+index 3fca4eea5..2bdaa1666 100644
+--- a/kernel/sched/ems/core.c
++++ b/kernel/sched/ems/core.c
+@@ -48,7 +48,7 @@ unsigned long task_util(struct task_struct *p)
+ 		return p->se.avg.util_avg;
+ }
+ 
+-int cpu_util_wake(int cpu, struct task_struct *p)
++unsigned long cpu_util_wake(int cpu, struct task_struct *p)
+ {
+ 	struct cfs_rq *cfs_rq;
+ 	unsigned int util;
+diff --git a/kernel/sched/ems/ems.h b/kernel/sched/ems/ems.h
+index 281e0089e..890c63b3f 100644
+--- a/kernel/sched/ems/ems.h
++++ b/kernel/sched/ems/ems.h
+@@ -38,7 +38,7 @@ static inline int prefer_idle_cpu(struct task_struct *p) { return -1; }
+ 
+ extern unsigned long cpu_util(int cpu);
+ extern unsigned long task_util(struct task_struct *p);
+-extern int cpu_util_wake(int cpu, struct task_struct *p);
++extern unsigned long cpu_util_wake(int cpu, struct task_struct *p);
+ extern unsigned long task_util_est(struct task_struct *p);
+ extern unsigned int get_cpu_mips(unsigned int cpu);
+ extern unsigned int get_cpu_max_capacity(unsigned int cpu);
+-- 
+2.55.0
+

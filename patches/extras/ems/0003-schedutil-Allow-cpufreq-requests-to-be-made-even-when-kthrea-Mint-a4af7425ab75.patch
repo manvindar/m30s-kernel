@@ -1,0 +1,85 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "Joel Fernandes (Google)" <joel@joelfernandes.org>
+Date: Wed, 8 Jul 2020 02:48:48 -0400
+Subject: [PATCH] schedutil: Allow cpufreq requests to be made even when
+ kthread kicked
+
+Currently there is a chance of a schedutil cpufreq update request to be
+dropped if there is a pending update request. This pending request can
+be delayed if there is a scheduling delay of the irq_work and the wake
+up of the schedutil governor kthread.
+
+A very bad scenario is when a schedutil request was already just made,
+such as to reduce the CPU frequency, then a newer request to increase
+CPU frequency (even sched deadline urgent frequency increase requests)
+can be dropped, even though the rate limits suggest that its Ok to
+process a request. This is because of the way the work_in_progress flag
+is used.
+
+This patch improves the situation by allowing new requests to happen
+even though the old one is still being processed. Note that in this
+approach, if an irq_work was already issued, we just update next_freq
+and don't bother to queue another request so there's no extra work being
+done to make this happen.
+
+Acked-by: Viresh Kumar <viresh.kumar@linaro.org>
+Acked-by: Juri Lelli <juri.lelli@redhat.com>
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Signed-off-by: Adam W. Willis <return.of.octobot@gmail.com>
+Signed-off-by: Yaroslav Furman <yaro330@gmail.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/cpufreq_schedutil.c | 24 +++++++++++++++++++-----
+ 1 file changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/kernel/sched/cpufreq_schedutil.c b/kernel/sched/cpufreq_schedutil.c
+index dd956463d..6207c902b 100644
+--- a/kernel/sched/cpufreq_schedutil.c
++++ b/kernel/sched/cpufreq_schedutil.c
+@@ -301,7 +301,7 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
+ 
+ 		policy->cur = next_freq;
+ 		trace_cpu_frequency(next_freq, smp_processor_id());
+-	} else {
++	} else if (!sg_policy->work_in_progress) {
+ 		cpu = sugov_select_scaling_cpu();
+ 		if (cpu < 0)
+ 			return;
+@@ -596,15 +596,29 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
+ static void sugov_work(struct kthread_work *work)
+ {
+ 	struct sugov_policy *sg_policy = container_of(work, struct sugov_policy, work);
++	unsigned int freq;
++	unsigned long flags;
++
++	/*
++	 * Hold sg_policy->update_lock shortly to handle the case where:
++	 * incase sg_policy->next_freq is read here, and then updated by
++	 * sugov_update_shared just before work_in_progress is set to false
++	 * here, we may miss queueing the new update.
++	 *
++	 * Note: If a work was queued after the update_lock is released,
++	 * sugov_work will just be called again by kthread_work code; and the
++	 * request will be proceed before the sugov thread sleeps.
++	 */
++	raw_spin_lock_irqsave(&sg_policy->update_lock, flags);
++	freq = sg_policy->next_freq;
++	sg_policy->work_in_progress = false;
++	raw_spin_unlock_irqrestore(&sg_policy->update_lock, flags);
+ 
+ 	down_write(&sg_policy->policy->rwsem);
+ 	mutex_lock(&sg_policy->work_lock);
+-	__cpufreq_driver_target(sg_policy->policy, sg_policy->next_freq,
+-				CPUFREQ_RELATION_L);
++	__cpufreq_driver_target(sg_policy->policy, freq, CPUFREQ_RELATION_L);
+ 	mutex_unlock(&sg_policy->work_lock);
+ 	up_write(&sg_policy->policy->rwsem);
+-
+-	sg_policy->work_in_progress = false;
+ }
+ 
+ static void sugov_irq_work(struct irq_work *irq_work)
+-- 
+2.55.0
+

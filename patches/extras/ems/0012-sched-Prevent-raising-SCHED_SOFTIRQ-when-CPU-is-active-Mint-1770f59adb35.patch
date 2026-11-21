@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Anna-Maria Behnsen <anna-maria@linutronix.de>
+Date: Tue, 15 Dec 2020 11:44:00 +0100
+Subject: [PATCH] sched: Prevent raising SCHED_SOFTIRQ when CPU is !active
+
+SCHED_SOFTIRQ is raised to trigger periodic load balancing. When CPU is not
+active, CPU should not participate in load balancing.
+
+The scheduler uses nohz.idle_cpus_mask to keep track of the CPUs which can
+do idle load balancing. When bringing a CPU up the CPU is added to the mask
+when it reaches the active state, but on teardown the CPU stays in the mask
+until it goes offline and invokes sched_cpu_dying().
+
+When SCHED_SOFTIRQ is raised on a !active CPU, there might be a pending
+softirq when stopping the tick which triggers a warning in NOHZ code. The
+SCHED_SOFTIRQ can also be raised by the scheduler tick which has the same
+issue.
+
+Therefore remove the CPU from nohz.idle_cpus_mask when it is marked
+inactive and also prevent the scheduler_tick() from raising SCHED_SOFTIRQ
+after this point.
+
+Signed-off-by: Anna-Maria Behnsen <anna-maria@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+Link: https://lkml.kernel.org/r/20201215104400.9435-1-anna-maria@linutronix.de
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/core.c | 7 ++++++-
+ kernel/sched/fair.c | 6 ++++--
+ 2 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index d3d858198..efd386ff2 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -6172,6 +6172,12 @@ int sched_cpu_deactivate(unsigned int cpu)
+ {
+ 	int ret;
+ 
++	/*
++	 * Remove CPU from nohz.idle_cpus_mask to prevent participating in
++	 * load balancing when not active
++	 */
++	nohz_balance_exit_idle(cpu);
++
+ 	set_cpu_active(cpu, false);
+ 	/*
+ 	 * We've cleared cpu_active_mask, wait for all preempt-disabled and RCU
+@@ -6240,7 +6246,6 @@ int sched_cpu_dying(unsigned int cpu)
+ 
+ 	calc_load_migrate(rq);
+ 	update_max_interval();
+-	nohz_balance_exit_idle(cpu);
+ 	hrtick_clear(rq);
+ 	return 0;
+ }
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 1b55ba399..b6f4a4a3e 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -11640,8 +11640,10 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
+  */
+ void trigger_load_balance(struct rq *rq)
+ {
+-	/* Don't need to rebalance while attached to NULL domain */
+-	if (unlikely(on_null_domain(rq)))
++	/* Don't need to rebalance while attached to NULL domain or
++	 * cpu is isolated or is not active.
++	 */
++	if (unlikely(on_null_domain(rq)) || !cpu_active(cpu_of(rq)))
+ 		return;
+ 
+ 	if (time_after_eq(jiffies, rq->next_balance))
+-- 
+2.55.0
+

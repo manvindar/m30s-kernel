@@ -37,7 +37,7 @@ on:
         description: Optional YYYYMMDD metadata label on the exact Android 17 baseline; requires fragment=true and perf/boost/hdr=false
         default: ''
       extras:
-        description: Mint-port extras, comma list of memfd,pidfd,wireguard,deknox,kernelsu,lto ('all' = all but lto); requires fragment=true, no version_date/performance_profile
+        description: Mint-port extras, comma list of memfd,pidfd,wireguard,deknox,kernelsu,ems,lto ('all' = all but ems and lto); requires fragment=true, no version_date/performance_profile
         default: ''
 permissions:
   contents: write
@@ -49,7 +49,7 @@ env:
   VERSION_DATE: ${{ inputs.version_date }}
   CPU_MALI: ${{ inputs.cpu_mali }}
   EXTRAS: ${{ inputs.extras }}
-  EXTRAS_ORDER: memfd pidfd wireguard deknox kernelsu lto   # patch/fragment order, independent of input order
+  EXTRAS_ORDER: memfd pidfd wireguard deknox kernelsu ems lto   # patch/fragment order, independent of input order
   PROTON_URL: https://github.com/kdrag0n/proton-clang/archive/9fb011b183fe7e69b04b873ef6533b4b077e3c5e.tar.gz   # proton-clang 20210522 (clang 13), as Mint; LTO only
   PROTON_SHA256: 7358f655bd5af997990f208212da2687a9cd4d53cb4f1811d6035487e04076b8
   KSU_COMMIT: 3291538446b7fccec46fa52775e6bf594c77b9f4  # tiann/KernelSU v0.9.2, last line Mint ships; supports non-GKI manual hooks
@@ -105,7 +105,7 @@ jobs:
           mkdir src && tar -xzf Kernel.tar.gz -C src && rm Kernel.tar.gz
           if [ -n "$EXTRAS" ]; then   # extras never touch the dated baseline or the reviewed profiles
             test "${{ inputs.fragment }}" = true && test -z "$VERSION_DATE" && test "$PERFORMANCE_PROFILE" = false && test "$CPU_MALI" = false
-            [ "$EXTRAS" = all ] && EXTRAS="${EXTRAS_ORDER% lto}"
+            [ "$EXTRAS" = all ] && EXTRAS="${EXTRAS_ORDER% ems lto}"
             for x in ${EXTRAS//,/ }; do case " $EXTRAS_ORDER " in *" $x "*) ;; *) echo "unknown extra: $x"; exit 1;; esac; done
             echo "EXTRAS_LIST=${EXTRAS//,/ }" >> "$GITHUB_ENV"
             if [[ " ${EXTRAS//,/ } " == *" kernelsu "* ]]; then   # full history: KernelSU's Makefile derives KSU_VERSION from the commit count
@@ -225,7 +225,7 @@ jobs:
             if [[ " $EXTRAS_LIST " == *" kernelsu "* ]]; then need="$need ksu_handle_execveat ksu_handle_faccessat ksu_handle_stat ksu_handle_vfs_read ksu_handle_input_handle_event"; fi
             for s in $need; do grep -qE " [Tt] $s$" System.map && echo "linked: $s" || { echo "MISSING SYMBOL: $s"; exit 1; }; done
             if [[ " $EXTRAS_LIST " == *" memfd "* ]]; then grep -q F_SEAL_FUTURE_WRITE include/uapi/linux/fcntl.h && grep -q 'info->seals & F_SEAL_FUTURE_WRITE' mm/shmem.c && echo "memfd: F_SEAL_FUTURE_WRITE in shmem" || { echo 'MISSING: F_SEAL_FUTURE_WRITE'; exit 1; }; fi
-            grep -E "^CONFIG_(USERFAULTFD|WIREGUARD|KSU|OVERLAY_FS|SECURITY_DSMS|INTEGRITY|FIVE|PROCA|SECURITY_DEFEX|UH|KPROBES)=" .config || true
+            grep -E "^CONFIG_(USERFAULTFD|SCHED_EMS|SCHED_TUNE|WIREGUARD|KSU|OVERLAY_FS|SECURITY_DSMS|INTEGRITY|FIVE|PROCA|SECURITY_DEFEX|UH|KPROBES)=" .config || true
             grep -m1 "KernelSU version" ../build.log || true
             if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -q "^CONFIG_LTO_CLANG=y" .config || { echo "LTO NOT ENABLED"; exit 1; }; grep LINUX_COMPILER include/generated/compile.h; fi
             echo "EXTRAS=$EXTRAS_LIST" > ../extras-receipt.txt; sha256sum arch/arm64/boot/Image >> ../extras-receipt.txt

@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lingutla Chandrasekhar <clingutla@codeaurora.org>
+Date: Thu, 4 Feb 2021 15:52:03 +0530
+Subject: [PATCH] sched: fair: consider all running tasks in cpu for load
+ balance
+
+Load_balancer considers only cfs running tasks for finding busiest cpu
+to do load balancing. But cpu may be busy with other type tasks (ex: RT),
+then that cpu might not selected as busy cpu due to weight vs nr_run
+checks fails). And possibley cfs tasks running on that cpu would suffer
+till other type tasks finishes or weight checks passes, while other cpus
+sitting idle and not able to do load balance.
+
+So, consider all running tasks to check cpu busieness.
+
+Change-Id: Iddf3f668507e20359f6388fc30ff5897d234c902
+Signed-off-by: Lingutla Chandrasekhar <clingutla@codeaurora.org>
+Signed-off-by: atndko <z1281552865@gmail.com>
+Signed-off-by: Cyber Knight <cyberknight755@gmail.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/fair.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 5c0babb0c..6c7f3fea9 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -9685,9 +9685,10 @@ static inline void update_sg_lb_stats(struct lb_env *env,
+ 
+ 		sgs->group_load += load;
+ 		sgs->group_util += cpu_util(i);
+-		sgs->sum_nr_running += rq->cfs.h_nr_running;
+ 
+ 		nr_running = rq->nr_running;
++		sgs->sum_nr_running += nr_running;
++
+ 		if (nr_running > 1)
+ 			*overload = true;
+ 
+-- 
+2.55.0
+

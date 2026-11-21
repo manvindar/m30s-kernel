@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mel Gorman <mgorman@techsingularity.net>
+Date: Tue, 13 Feb 2018 13:37:26 +0000
+Subject: [PATCH] sched/fair: Defer calculation of 'prev_eff_load' in
+ wake_affine_weight() until needed
+
+On sync wakeups, the previous CPU effective load may not be used so delay
+the calculation until it's needed.
+
+Signed-off-by: Mel Gorman <mgorman@techsingularity.net>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Giovanni Gherdovich <ggherdovich@suse.cz>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Mike Galbraith <efault@gmx.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Link: http://lkml.kernel.org/r/20180213133730.24064-3-mgorman@techsingularity.net
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Andrzej Perczak <linux@andrzejperczak.com>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/fair.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index f2755afc7..4a7e88272 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -6758,7 +6758,6 @@ wake_affine_weight(struct sched_domain *sd, struct task_struct *p,
+ 	unsigned long task_load;
+ 
+ 	this_eff_load = target_load(this_cpu, sd->wake_idx);
+-	prev_eff_load = source_load(prev_cpu, sd->wake_idx);
+ 
+ 	if (sync) {
+ 		unsigned long current_load = task_h_load(current);
+@@ -6776,6 +6775,7 @@ wake_affine_weight(struct sched_domain *sd, struct task_struct *p,
+ 		this_eff_load *= 100;
+ 	this_eff_load *= capacity_of(prev_cpu);
+ 
++	prev_eff_load = source_load(prev_cpu, sd->wake_idx);
+ 	prev_eff_load -= task_load;
+ 	if (sched_feat(WA_BIAS))
+ 		prev_eff_load *= 100 + (sd->imbalance_pct - 100) / 2;
+-- 
+2.55.0
+

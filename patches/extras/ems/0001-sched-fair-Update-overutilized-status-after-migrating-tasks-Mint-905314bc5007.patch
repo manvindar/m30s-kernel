@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Pavankumar Kondeti <pkondeti@codeaurora.org>
+Date: Wed, 30 Jan 2019 19:12:47 +0530
+Subject: [PATCH] sched: fair: Update overutilized status after migrating tasks
+
+The enqueue_task_fair updates the overutilized status only for
+waking tasks. Since multiple tasks may get migrated during the
+load balancer, update the overutilized status after migrating
+all tasks.
+
+Change-Id: I2163ba8dcb7eb9677f609d19e3579867e4dff1b1
+Signed-off-by: Pavankumar Kondeti <pkondeti@codeaurora.org>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/fair.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 6544b4069..5c0babb0c 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -9128,6 +9128,7 @@ static void attach_one_task(struct rq *rq, struct task_struct *p)
+ 	rq_lock(rq, &rf);
+ 	update_rq_clock(rq);
+ 	attach_task(rq, p);
++	update_overutilized_status(rq);
+ 	rq_unlock(rq, &rf);
+ }
+ 
+@@ -9151,6 +9152,13 @@ static void attach_tasks(struct lb_env *env)
+ 		attach_task(env->dst_rq, p);
+ 	}
+ 
++	/*
++	 * The enqueue_task_fair only updates the overutilized status
++	 * for the waking tasks. Since multiple tasks may get migrated
++	 * from load balancer, instead of doing it there, update the
++	 * overutilized status here at the end.
++	 */
++	update_overutilized_status(env->dst_rq);
+ 	rq_unlock(env->dst_rq, &rf);
+ }
+ 
+-- 
+2.55.0
+

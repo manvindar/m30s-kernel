@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Peter Oskolkov <posk@google.com>
+Date: Wed, 30 Sep 2020 10:35:32 -0700
+Subject: [PATCH] sched/fair: Tweak pick_next_entity()
+
+Currently, pick_next_entity(...) has the following structure
+(simplified):
+
+  [...]
+  if (last_buddy_ok())
+    result = last_buddy;
+  if (next_buddy_ok())
+    result = next_buddy;
+  [...]
+
+The intended behavior is to prefer next buddy over last buddy;
+the current code somewhat obfuscates this, and also wastes
+cycles checking the last buddy when eventually the next buddy is
+picked up.
+
+So this patch refactors two 'ifs' above into
+
+  [...]
+  if (next_buddy_ok())
+      result = next_buddy;
+  else if (last_buddy_ok())
+      result = last_buddy;
+  [...]
+
+Signed-off-by: Peter Oskolkov <posk@google.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Vincent Guittot <vincent.guitttot@linaro.org>
+Link: https://lkml.kernel.org/r/20200930173532.1069092-1-posk@google.com
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/fair.c | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 3a4dc9e47..31f1971b8 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -4374,17 +4374,17 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ 			se = second;
+ 	}
+ 
+-	/*
+-	 * Prefer last buddy, try to return the CPU to a preempted task.
+-	 */
+-	if (cfs_rq->last && wakeup_preempt_entity(cfs_rq->last, left) < 1)
+-		se = cfs_rq->last;
+-
+-	/*
+-	 * Someone really wants this to run. If it's not unfair, run it.
+-	 */
+-	if (cfs_rq->next && wakeup_preempt_entity(cfs_rq->next, left) < 1)
++	if (cfs_rq->next && wakeup_preempt_entity(cfs_rq->next, left) < 1) {
++		/*
++		 * Someone really wants this to run. If it's not unfair, run it.
++		 */
+ 		se = cfs_rq->next;
++	} else if (cfs_rq->last && wakeup_preempt_entity(cfs_rq->last, left) < 1) {
++		/*
++		 * Prefer last buddy, try to return the CPU to a preempted task.
++		 */
++		se = cfs_rq->last;
++	}
+ 
+ 	clear_buddies(cfs_rq, se);
+ 
+-- 
+2.55.0
+

@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maria Yu <aiquny@codeaurora.org>
+Date: Mon, 15 Apr 2019 12:41:12 +0800
+Subject: [PATCH] sched/fair: Allow load bigger task load balance when
+ nr_running is 2
+
+When there is only 2 tasks in 1 cpu and the other
+task is currently running, allow load bigger task
+to be balanced if the other task is currently
+running.
+
+Change-Id: I489e9624ba010f9293272a67585e8209a786b787
+Signed-off-by: Maria Yu <aiquny@codeaurora.org>
+Signed-off-by: Cong Zhang <congzhan@codeaurora.org>
+Signed-off-by: John Vincent <git@tenseventyseven.cf>
+---
+ kernel/sched/fair.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 31f1971b8..32f7c4a07 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -9091,7 +9091,16 @@ static int detach_tasks(struct lb_env *env, struct rq_flags *rf)
+ 		if (sched_feat(LB_MIN) && load < 16 && !env->sd->nr_balance_failed)
+ 			goto next;
+ 
+-		if ((load / 2) > env->imbalance)
++		/*
++		 * p is not running task when we goes until here, so if p is one
++		 * of the 2 task in src cpu rq and not the running one,
++		 * that means it is the only task that can be balanced.
++		 * So only when there is other tasks can be balanced or
++		 * there is situation to ignore big task, it is needed
++		 * to skip the task load bigger than 2*imbalance.
++		 */
++		if (((cpu_rq(env->src_cpu)->nr_running > 2)) &&
++			((load / 2) > env->imbalance))
+ 			goto next;
+ 
+ 		detach_task(p, env, rf);
+-- 
+2.55.0
+
