@@ -144,6 +144,9 @@ jobs:
               patch -p1 -F3 --no-backup-if-mismatch < "$p" > ../patch.log 2>&1 || { echo "PATCH FAILED: $p"; cat ../patch.log; exit 1; }
               grep -H "fuzz" ../patch.log | sed "s|^|$(basename $p): |" || true
             done
+            for p in ../patches/acpm/*.patch; do   # ACPM init data via raw IO (the boot-acpm-fixed kernel)
+              patch -p1 -F3 --no-backup-if-mismatch < "$p" > ../patch.log 2>&1 || { echo "PATCH FAILED: $p"; cat ../patch.log; exit 1; }
+            done
           fi
           for x in $EXTRAS_ORDER; do   # Mint-port extras (patches/extras/<name>); stop on any reject
             if [[ " $EXTRAS_LIST " != *" $x "* ]] || [ ! -d ../patches/extras/$x ]; then continue; fi

@@ -1,0 +1,41 @@
+From: manvindar <noreply@users.noreply.github.com>
+Subject: [PATCH] acpm: access the shared ACPM init data with __raw_readl/__raw_writel
+
+The ACPM init data lives in device (MMIO) memory; plain loads and stores to
+it can fault with the Android 17 boot. Use the raw IO accessors, as in the
+boot-acpm-fixed kernel (v0.7-a17-qpr3-beta4-twrp, kernel-source-acpm-fixed).
+---
+--- a/drivers/soc/samsung/acpm/acpm_ipc.c
++++ b/drivers/soc/samsung/acpm/acpm_ipc.c
+@@ -63,10 +63,10 @@
+ 	u32 hour, min, sec;
+ 
+ 	for (i = 0; i < 6; i++) {
+-		user = acpm_initdata->inform0[i];
+-		time = acpm_initdata->inform1[i];
+-		start = acpm_initdata->inform2[i];
+-		end = acpm_initdata->inform3[i];
++		user = __raw_readl((void __iomem *)&acpm_initdata->inform0[i]);
++		time = __raw_readl((void __iomem *)&acpm_initdata->inform1[i]);
++		start = __raw_readl((void __iomem *)&acpm_initdata->inform2[i]);
++		end = __raw_readl((void __iomem *)&acpm_initdata->inform3[i]);
+ 		hour = ((time & (0xff << 24)) >> 24) & 0x3f;
+ 		min = ((time & (0xff << 16)) >> 16) & 0x7f;
+ 		sec = ((time & (0xff << 8)) >> 8) & 0x7f;
+@@ -76,11 +76,11 @@
+ 	}
+ 
+ 	for (i = 0; i < 6; i++) {
+-		acpm_initdata->inform_head = 0;
+-		acpm_initdata->inform0[i] = 0;
+-		acpm_initdata->inform1[i] = 0;
+-		acpm_initdata->inform2[i] = 0;
+-		acpm_initdata->inform3[i] = 0;
++		__raw_writel(0, (void __iomem *)&acpm_initdata->inform_head);
++		__raw_writel(0, (void __iomem *)&acpm_initdata->inform0[i]);
++		__raw_writel(0, (void __iomem *)&acpm_initdata->inform1[i]);
++		__raw_writel(0, (void __iomem *)&acpm_initdata->inform2[i]);
++		__raw_writel(0, (void __iomem *)&acpm_initdata->inform3[i]);
+ 	}
+ }
+ 
