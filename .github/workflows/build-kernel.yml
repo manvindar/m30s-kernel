@@ -174,6 +174,8 @@ jobs:
             printf '#!/bin/sh\nexec %s -nostdlib "$@"\n' "$P/bin/aarch64-linux-gnu-ld.gold" > $P/gold && chmod +x $P/gold   # proton gold otherwise scans its build host's /root/build/... lib dir
             M="$M CC=$P/bin/clang LDGOLD=$P/gold CROSS_COMPILE=$P/bin/aarch64-linux-gnu- CROSS_COMPILE_ARM32=$P/bin/arm-linux-gnueabi- GCC_TOOLCHAIN_DIR=$P/aarch64-linux-gnu/bin/ KCFLAGS=-Wno-error"   # Samsung builds with -Werror; clang 13 warns far more than clang 6
             echo 'KBUILD_CFLAGS += -mstrict-align' >> arch/arm64/Makefile   # clang 13 emits unaligned accesses that fault on device (MMIO) memory, e.g. fvmap_init data abort (DFSC 0x21); clang 6 did not
+            sed -i 's#^\(\s*\)PYTHONDONTWRITEBYTECODE=0 "${srctree}/scripts/fmp/fips_fmp_integrity.py"#\1cp vmlinux ../vmlinux.prefips; &#' scripts/link-vmlinux.sh   # link-vmlinux deletes vmlinux when the FIPS step fails; keep a copy for diagnosis
+            grep -n 'vmlinux.prefips' scripts/link-vmlinux.sh
           fi
           find . -name 'Kconfig*' -exec sed -i 's/\r$//' {} +   # CRLF in Samsung's Kconfig files
           sed -i 's/PF_MAX > [0-9]*/PF_MAX > 99/' security/selinux/include/classmap.h   # host AF_MAX is newer than the kernel expects (host tool only)
@@ -209,7 +211,7 @@ jobs:
             export KBUILD_BUILD_TIMESTAMP="$(python3 -c 'import datetime,sys; print(datetime.datetime.strptime(sys.argv[1], "%Y%m%d").strftime("%a %b %d 00:00:00 UTC %Y"))' "$VERSION_DATE")"
             M="$M LOCALVERSION="
           fi
-          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; echo "--- tail of build.log:"; tail -40 ../build.log | cut -c1-300; if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -B8 "assembler command failed" ../build.log | head -40; make $M V=1 scripts/mod/empty.o 2>&1 | tail -25; fi; if [ -f vmlinux ]; then echo "--- FMP marker symbols in vmlinux:"; readelf -sW vmlinux | grep -E "(first|last)_fmp_|builtime_fmp|integrity_fmp|fmp_buildtime" | head -30; for a in $(readelf -sW vmlinux | awk '/ (first|last)_fmp_rodata$/ {print $2}'); do echo "--- symbols at $a:"; readelf -sW vmlinux | grep -F " $a " | head; done; fi; exit 1; }
+          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; echo "--- tail of build.log:"; tail -40 ../build.log | cut -c1-300; if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -B8 "assembler command failed" ../build.log | head -40; make $M V=1 scripts/mod/empty.o 2>&1 | tail -25; fi; if [ -f ../vmlinux.prefips ]; then echo "--- FMP marker symbols in vmlinux:"; readelf -sW ../vmlinux.prefips | grep -E "(first|last)_fmp_|builtime_fmp|integrity_fmp|fmp_buildtime" | head -30; for a in $(readelf -sW ../vmlinux.prefips | awk '/ (first|last)_fmp_rodata$/ {print $2}'); do echo "--- symbols at $a:"; readelf -sW ../vmlinux.prefips | grep -F " $a " | head; done; fi; exit 1; }
           if [ -n "$VERSION_DATE" ]; then
             test "$(cat include/config/kernel.release)" = "4.14.113-perf-$VERSION_DATE"
             python3 - <<'PYBANNER'
