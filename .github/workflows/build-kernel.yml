@@ -116,6 +116,8 @@ jobs:
               git -C src/KernelSU checkout -q "$KSU_COMMIT"
               test "$(git -C src/KernelSU rev-parse HEAD)" = "$KSU_COMMIT"
               ln -s ../KernelSU/kernel src/drivers/kernelsu
+              grep -c 'ret += read_count_append;' src/KernelSU/kernel/ksud.c | grep -qx 2   # both read proxies; when the fs has .read AND .read_iter the injected length was added twice, leaving 351 garbage bytes inside init's atrace.rc and breaking tracefs permissions (WebView sandbox then dies opening trace_marker)
+              sed -i 's/ret += read_count_append;/if (read_count_append) { ret += read_count_append; read_count_append = 0; }/' src/KernelSU/kernel/ksud.c
               case "${{ inputs.ksu_variant }}" in   # diagnostic bisect of the isolated-process uid failure, never for a release
                 setuid) sed -i '/LSM_HOOK_INIT(task_fix_setuid/d;/KSU_LSM_HOOK_HACK_INIT(setuid_head/d' src/KernelSU/kernel/core_hook.c;;
                 rename) sed -i '/LSM_HOOK_INIT(inode_rename/d' src/KernelSU/kernel/core_hook.c;;
