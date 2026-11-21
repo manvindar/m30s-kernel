@@ -1,0 +1,200 @@
+# Mint EMS/scheduler commits between the A505F base drop (8761b87bb752) and Mint HEAD, in history order.
+# Inventory only: NOT ported. See README 'Tuned scheduler'. Source: SamsungM30s/kernel_samsung_m307f branch mint.
+905314bc5007 2019-01-30 Pavankumar Kondeti | sched: fair: Update overutilized status after migrating tasks
+7bfa0eda29bb 2021-02-04 Lingutla Chandrasekhar | sched: fair: consider all running tasks in cpu for load balance
+4877de92f6d9 2018-08-09 Abhijeet Dharmapurikar | sched/core: fix userspace affining threads incorrectly
+6a456d59ad7f 2018-09-25 Pavankumar Kondeti | sched/core: Fix use after free issue in is_sched_lib_based_app()
+802724eca9e1 2019-03-13 Pavankumar Kondeti | sched: Improve the scheduler
+9508c05b0058 2020-08-13 Jimmy Shiu | sched/core: fix userspace affining threads incorrectly by task name.
+a4af7425ab75 2020-07-08 Joel Fernandes (Google) | schedutil: Allow cpufreq requests to be made even when kthread kicked
+36109f94907e 2022-06-08 Josh Don | sched: Allow newidle balancing to bail out of load_balance
+c39d58b0fec8 2017-05-06 Peter Zijlstra | sched/fair: Change update_load_avg() arguments
+0962cdc39051 2019-01-30 Peter Zijlstra | [BACKPORT] sched/fair: Add tmp_alone_branch assertion
+407a59497b1b 2019-01-30 Vincent Guittot | sched/fair: Fix insertion in rq->leaf_cfs_rq_list
+37a85f40fa0d 2019-01-23 Vincent Guittot | [BACKPORT] UPSTREAM: sched/fair: Move the rq_of() helper function
+efc3413b08b0 2021-05-01 Odin Ugedal | sched/fair: Fix unfairness caused by missing load decay
+1cb75e3e4ce3 2020-09-30 Peter Oskolkov | sched/fair: Tweak pick_next_entity()
+3702d7291f6e 2019-04-15 Maria Yu | sched/fair: Allow load bigger task load balance when nr_running is 2
+ce25e8b57d86 2021-01-07 Vincent Guittot | sched/fair: Don't set LBF_ALL_PINNED unnecessarily
+ef9f5de3462d 2017-09-13 Uladzislau Rezki | sched/fair: Search a task from the tail of the queue
+1770f59adb35 2020-12-15 Anna-Maria Behnsen | sched: Prevent raising SCHED_SOFTIRQ when CPU is !active
+f87adaa08684 2021-11-14 Peter Zijlstra | sched,fair: Alternative sched_slice()
+c3a8172f7588 2020-05-25 Diep Quynh | schedutil: Import fb callbacks to disable iowait boost on screen off
+e494698c3fd9 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Add CPU's clamp buckets refcounting
+0a239c7246b6 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Add bucket local max tracking
+1174b37c88e8 2021-02-09 Patrick Bellasi | UPSTREAM: sched/uclamp: Enforce last task's UCLAMP_MAX
+1f8374d28661 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Add system default clamps
+8ab2082e30f0 2019-06-21 Patrick Bellasi | UPSTREAM: sched/core: Allow sched_setattr() to use the current policy
+25e4cb1f2280 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Extend sched_setattr() to support utilization clamping
+51f8d51a1235 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Reset uclamp values on RESET_ON_FORK
+2d0c2ef98adb 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Set default clamps for RT tasks
+87f523cf383d 2021-02-09 Patrick Bellasi | BACKPORT: sched/cpufreq, sched/uclamp: Add clamps for FAIR and RT tasks
+0dea42aeaefb 2019-06-21 Patrick Bellasi | UPSTREAM: sched/uclamp: Add uclamp_util_with()
+14963cb33d35 2019-08-22 Patrick Bellasi | UPSTREAM: sched/uclamp: Extend CPU's cgroup controller
+bcab1b4323d7 2019-08-22 Patrick Bellasi | UPSTREAM: sched/uclamp: Propagate parent clamps
+144929efdfe6 2019-08-22 Patrick Bellasi | UPSTREAM: sched/uclamp: Propagate system defaults to the root group
+afaf933218c0 2019-08-22 Patrick Bellasi | UPSTREAM: sched/uclamp: Use TG's clamps to restrict TASK's clamps
+b9af25f7030a 2019-08-22 Patrick Bellasi | UPSTREAM: sched/uclamp: Update CPU's refcount on TG's clamp changes
+6a3892c5c127 2019-08-22 Patrick Bellasi | UPSTREAM: sched/uclamp: Always use 'enum uclamp_id' for clamp_id values
+388a44d82aac 2019-09-04 Ingo Molnar | UPSTREAM: sched/core: Fix uclamp ABI bug, clean up and robustify sched_read_attr() ABI logic and code
+ff3e146fd082 2019-11-05 Qais Yousef | UPSTREAM: sched/core: Fix compilation error when cgroup not selected
+1e8be2caa7d0 2020-01-14 Qais Yousef | sched/uclamp: Reject negative values in cpu_uclamp_write()
+b59360bed3be 2019-12-25 Li Guanglei | sched/core: Fix size of rq::uclamp initialization
+2f6b74f3df10 2020-04-16 Quentin Perret | sched/core: Fix reset-on-fork from RT with uclamp
+5e191c9fd4b9 2019-12-11 Valentin Schneider | BACKPORT: sched/uclamp: Remove uclamp_util()
+4de088743cd0 2019-12-11 Valentin Schneider | UPSTREAM: sched/uclamp: Make uclamp util helpers use and return UL values
+1687ebc994ec 2020-06-30 Qais Yousef | UPSTREAM: sched/uclamp: Fix initialization of struct uclamp_rq
+e9ef810554c6 2020-06-30 Qais Yousef | BACKPORT: sched/uclamp: Protect uclamp fast path code with static key
+c283cefefc7d 2020-07-16 Qais Yousef | UPSTREAM: sched/uclamp: Fix a deadlock when enabling uclamp static key
+d43b23da8d98 2020-07-16 Qais Yousef | BACKPORT: sched/uclamp: Add a new sysctl to control RT default boost value
+1024907549f5 2019-07-30 Quentin Perret | ANDROID: sched/core: Add a latency-sensitive flag to uclamp
+fa539f223460 2019-07-30 Quentin Perret | ANDROID: sched: Introduce uclamp latency and boost wrapper
+cbdc7c10c6db 2021-01-29 darkhz | sched/fair: Modify boosted_task_util() to reflect uclamp changes
+32fbca412fe3 2021-02-09 darkhz | sched/fair: Make boosted and prefer_idle tunables uclamp aware
+3d12ee27934c 2021-02-09 darkhz | sched/cpufreq_schedutil: Reflect uclamp changes
+a46dad57df53 2021-02-09 darkhz | sched/uclamp: Move all tunables to cpusets
+ff6628d8671b 2021-01-18 darkhz | sched/uclamp: Fix incorrect uclamp.latency_sensitive setting
+55814fce1fb5 2021-01-29 darkhz | sched/uclamp: Make uclamp_boosted() return proper boosted value
+0f75172d08e5 2021-02-09 darkhz | sched/uclamp: Create a new uclamp.boosted tunable
+82c04250d6c6 2021-03-07 darkhz | sched/uclamp: Use wrappers for *_{read, write, show} functions
+bf20b57c6fcf 2020-07-25 Qinglang Miao | sched/uclamp: Remove unnecessary mutex_init()
+c8e81800b7fb 2019-11-14 Qais Yousef | UPSTREAM: sched/uclamp: Fix incorrect condition
+b86d0bc6f232 2021-08-10 Quentin Perret | BACKPORT: FROMGIT: sched: Fix UCLAMP_FLAG_IDLE setting
+60c8d585708a 2021-08-10 Quentin Perret | BACKPORT: FROMGIT: sched: Don't report SCHED_FLAG_SUGOV in sched_getattr()
+3036c102a483 2021-08-10 Quentin Perret | BACKPORT: FROMGIT: sched: Skip priority checks with SCHED_FLAG_KEEP_PARAMS
+9bf9ebef7aaa 2021-08-13 Quentin Perret | BACKPORT: ANDROID: sched: Make uclamp changes depend on CAP_SYS_NICE
+fd4b47248d6b 2020-02-26 Valentin Schneider | sched/debug: Add task uclamp values to SCHED_DEBUG procfs
+74c69d651cb0 2021-08-05 Quentin Perret | sched: Fix UCLAMP_FLAG_IDLE setting
+f960971f5441 2021-11-17 Qais Yousef | BACKPORT: sched/uclamp: Fix wrong implementation of cpu.uclamp.min
+2d2cea4fc21a 2020-11-13 Dietmar Eggemann | BACKPORT: sched/uclamp: Allow to reset a task uclamp constraint value
+ba4749dde535 2019-12-24 Qais Yousef | sched/uclamp: Fix a bug in propagating uclamp value in new cgroups
+b8ba17d7b69d 2021-05-10 Qais Yousef | sched/uclamp: Fix locking around cpu_util_update_eff()
+5ea163805d79 2017-09-07 luca abeni | sched/deadline: Use C bitfields for the state flags
+26425738272f 2017-10-13 Dan Carpenter | sched/deadline: Don't use dubious signed bitfields
+d7d4b22073e9 2017-12-12 Juri Lelli | sched/deadline: Implement "runtime overrun signal" support
+4e23513a6d63 2021-10-22 Diep Quynh | sched: exynos: Correct cpu_util_wake() return value
+c91d0ad5b0b7 2021-03-25 darkhz | uclamp_assist: Implement Uclamp Assist
+50180c2010d9 2021-12-02 Qais Yousef | sched/uclamp: Fix rq->uclamp_max not set on first enqueue
+3b348f6c8e91 2021-07-13 Quentin Perret | UPSTREAM: sched: Fix out-of-bound access in uclamp
+ed76ed4b2ab3 2021-06-30 Xuewen Yan | sched/uclamp: Ignore max aggregation if rq is idle
+2b7c68d955ca 2022-07-21 Chris Redpath | sched: exynos: Introduce a revamp to the Exynos Mobile Scheduler (EMS)
+7e1267e7f3f5 2023-01-19 John Vincent | sched: uclamp: Initial minimum clamp values
+a52a82899da9 2023-01-19 John Vincent | arm64: dts: exynos: Adapt to recent scheduler changes
+bfcc6b6c5275 2023-01-20 John Vincent | sched: exynos: Remove preemption check for fit CPU selection
+ddaef5f64a15 2023-01-20 John Vincent | sched: exynos: Remove the 'needs fast' requirement for migrating tasks
+851be8500e2b 2023-01-20 John Vincent | sched: exynos: Make 'mulligan' tasks ineligible for fast placement
+bd1fef501f11 2023-01-20 John Vincent | sched: exynos: profile: Remove arbitrary compiler guard
+0ee5c259057a 2023-01-20 John Vincent | sched: exynos: sysbusy: Make SysBusy profiling and hold HZ-agnostic
+0a0834f1cb3a 2021-11-14 Vincent Guittot | sched/pelt: Skip updating util_est when utilization is higher than CPU's capacity
+d958703ea44a 2023-01-20 John Vincent | sched: core: Guard Exynos scheduler-only task wakeup function
+e63898f55da4 2023-01-20 John Vincent | sched: fair: Use ifdef directive for EMS task placement
+d3a46151d6a6 2023-01-20 John Vincent | sched: features: Drop the "EXYNOS_MS" feature
+f4f4354c1396 2023-01-20 John Vincent | sched: exynos: multi_load: Drop EMS' own load average tracking
+17c385ad450c 2023-01-20 John Vincent | sched: exynos: Cleanup EMS' global header
+9832a0766216 2023-01-20 John Vincent | sched: exynos: ontime: Remove runqueue flags for ontime migration
+b263360aa8e8 2023-01-20 John Vincent | sched: exynos: ontime: Take advantage of UtilClamp for heavy migration
+874fe5c00cd7 2023-01-20 John Vincent | sched: exynos: multi_load: Inline mlt_can_update_art()
+68cae1c87164 2023-01-20 John Vincent | sched: exynos: aigo: Ensure util is traced when MLT boosted
+c33ee706d2c3 2022-05-24 John Galt | HACK: sched: pelt: Twice the decay for ramping up PELT scaling
+6708784e37a7 2023-01-20 John Vincent | sched: exynos: multi_load: Increase PELT boost interval to 16ms
+f5dcb53b630a 2023-01-21 John Vincent | sched: exynos: Allocate memory for the all EMS-supported CGroups
+acc9674d7c9c 2023-01-21 John Vincent | sched: exynos: multi_load: Guard load average and runnable avg with READ_ONCE
+4769e74ea0dc 2023-01-21 John Vincent | sched: exynos: core: Move utilization updating to wakeup path
+5c0c0c643bc3 2023-01-21 John Vincent | sched: exynos: frt: Simplify and upstream Fluid RT scheduling
+6f402b50d2e0 2023-01-21 John Vincent | sched: exynos: Make task placement tracing more useful
+3ebd45b2c127 2023-01-21 John Vincent | sched: exynos: core: Fix performance task placement
+bfeddb889286 2023-01-21 John Vincent | sched: exynos: Follow upstream for policy, 'fit' CPU, and allowed CPU selection
+c88893bd6c78 2023-01-21 John Vincent | sched: core: Set UCLAMP_MIN of RT tasks to zero
+950903cf6d07 2020-03-10 Paul Turner | BACKPORT: sched/core: Distribute tasks within affinity masks
+67e1e43b5ebe 2020-10-01 Peter Zijlstra | sched,rt: Use cpumask_any*_distribute()
+384cb0694361 2023-01-21 John Vincent | sched: exynos: core: Use cpumask_any_distribute() for the final sanity check
+eee1fff3be72 2023-01-21 John Vincent | sched: exynos: Use cpumask_any_distribute() for find_fastest_cpu()
+99d9eaf82b4a 2023-01-21 John Vincent | sched: uclamp: Set UtilClamp minimum util for RT tasks
+30416745974d 2021-12-06 Qais Yousef | BACKPORT: sched/uclamp: Filter out uclamp_max for small tasks
+e77b33fa0084 2023-01-21 John Vincent | sched: exynos: tex: Drop sysfs-based tunables for Q-Jump and TEX prio
+b9bc692e20bf 2023-01-23 John Vincent | sched: exynos: frt: Add initial support for Task EXpress (TEX)
+d3f64bd6d481 2023-01-23 John Vincent | sched: uclamp: Increase minimum util for RT tasks
+e3c9eff4ce91 2018-02-13 Mel Gorman | sched/fair: Defer calculation of 'prev_eff_load' in wake_affine_weight() until needed
+83425fcfd0dd 2018-01-30 Mel Gorman | sched/fair: Remove unnecessary parameters from wake_affine_idle()
+e9dea5049e09 2018-01-30 Mel Gorman | sched/fair: Restructure wake_affine*() to return a CPU id
+3358f78e720b 2017-12-19 Mel Gorman | sched/fair: Only immediately migrate tasks due to interrupts if prev and target CPUs share cache
+ea5a981dde10 2018-01-30 Mel Gorman | sched/fair: Do not migrate if the prev_cpu is idle
+4fc1e7e885d0 2018-02-13 Mel Gorman | sched/fair: Do not migrate on wake_affine_weight() if weights are equal
+15b69efc641c 2022-01-14 Viresh Kumar | sched/fair: Avoid calling sync_entity_load_avg() unnecessarily
+08e6e2694589 2019-07-19 Juri Lelli | sched/deadline: Fix bandwidth accounting at all levels after offline migration
+487adfb12742 2018-05-30 Juri Lelli | sched/deadline: Fix missing clock update
+27956e0dcec8 2018-01-30 Mel Gorman | sched/fair: Use a recently used CPU as an idle candidate and the basis for SIS
+65865e1d68f3 2018-06-12 Peter Zijlstra | sched/swait: Switch to full exclusive mode
+ddf33b6a00e6 2020-01-13 Wanpeng Li | BACKPORT: sched/nohz: Optimize get_nohz_timer_target()
+3a060edb5253 2021-04-07 Lingutla Chandrasekhar | sched/fair: Ignore percpu threads for imbalance pulls
+6e84939e2994 2019-02-28 Pavankumar Kondeti | cpuset: Restore tasks affinity while moving across cpusets
+d89cf34f71ba 2017-04-04 Sebastian Andrzej Siewior | kernel: sched: Provide a pointer to the valid CPU mask
+16be7f55f3aa 2023-01-23 John Vincent | sched: exynos: Switch to 'task->cpus_ptr'
+b05e932c1ddb 2020-03-30 Valentin Schneider | sched/fair: Align rq->avg_idle and rq->avg_scan_cost
+25967268d2c5 2019-12-26 Wei Li | sched/debug: Reset watchdog on all CPUs while processing sysrq-t
+7221ad17a7bc 2020-05-07 Gustavo A. R. Silva | sched/fair: Replace zero-length array with flexible-array
+b49c7168c26e 2020-03-27 Huaixin Chang | sched/fair: Fix race between runtime distribution and assignment
+aad88a6683d3 2019-11-18 Minchan Kim | sched: Attribute page lock and waitqueue functions as sched
+3e5c45e4ce2b 2019-04-09 Valentin Schneider | sched/topology: Skip duplicate group rewrites in build_sched_groups()
+5ad1741a7c4f 2019-12-11 Rafael J. Wysocki | cpufreq: Avoid leaving stale IRQ work items during CPU offline
+735229a1f628 2018-06-13 John Dias | cpufreq: schedutil: clear cached_raw_freq when invalidated
+faacb5a40a27 2018-06-17 Viresh Kumar | cpufreq: schedutil: Don't set next_freq to UINT_MAX
+82f787b37d17 2021-05-27 Viresh Kumar | cpufreq: schedutil: Don't skip freq update when limits change
+89e3c973c9d4 2023-01-23 John Vincent | sched: exynos: Allow semi-perf policy to all cgroups that get KPP hints
+a7a1a2138896 2023-01-23 John Vincent | sched: exynos: Drop the 'min util' scheduling policy
+e0c13bdd80a2 2023-01-23 John Vincent | sched: exynos: Merge ems_task_top_app() into ems_task_on_top()
+1868293cbc89 2023-01-23 John Vincent | sched: exynos: Clean up sched_policy_get()
+4cf9b7f7231f 2023-01-23 John Vincent | sched: exynos: Set default scheduling policy to 'energy'
+1f9c02a557aa 2023-01-23 John Vincent | Revert "sched: exynos: Allow semi-perf policy to all cgroups that get KPP hints"
+9c9d653dfef1 2023-01-23 John Vincent | sched: exynos: core: Remove 'unmatching CPU' skipping
+d70eccab322e 2023-01-23 John Vincent | arm64: dts: exynos: Slightly increase 'ontime' boundaries
+96dcc0471812 2023-01-23 John Vincent | sched: exynos: tex: Add SchedTune tunables for pinning CPUs
+57928e80b7ae 2023-01-24 John Vincent | Revert "arm64: dts: exynos: Slightly increase 'ontime' boundaries"
+8372e2bb3953 2023-01-23 John Vincent | sched: exynos: Allow semi-perf policy to all cgroups that get KPP hints
+72c316613160 2023-01-24 John Vincent | sched: exynos: frt: Set backup CPU as best if no best CPU is selected
+a257a24e9cff 2023-01-24 John Vincent | sched: exynos: prefer: Use 'clamped' util for threshold checking
+43ce8386c86b 2023-01-24 John Vincent | arm64: dts: exynos: Tune 'prefer' CPUs for the platform
+cbac0f436424 2023-01-24 John Vincent | arm64: dts: exynos: Tune 'energy_adaptive' rate limits
+5f5eb55c7722 2023-01-24 John Vincent | arm64: dts: exynos: Tune 'energy_adaptive' tipping point scale
+248ceeec63dc 2023-01-24 John Vincent | arm64: dts: exynos: Tune 'energy_adaptive' boost tables
+1648ee073d39 2023-01-24 John Vincent | sched: exynos: frt: Ensure 'fit' CPUs intersect with TEX pinning CPUs
+6cd0a6956c56 2023-01-24 John Vincent | sched: exynos: aigo: Rename configs appropriately for AIGo
+f5d50492f459 2017-05-05 Vikram Mulukutla | sched: exynos: aigo: Ignore work_in_progress
+1f6369774003 2023-01-26 John Vincent | sched: exynos: aigo: Rename aigo_irq_work_queue()
+87090d8a205a 2022-01-25 Panchajanya1999 | sched: exynos: aigo: Expose limit tunables cluster-wise
+d4e826ecee58 2023-01-24 John Vincent | sched: exynos: aigo: Drop usage of EMS freqvar-tune
+9f5586388a03 2023-01-26 John Vincent | sched: exynos: Drop EMS 'frequency variant' boosting
+f6937fc42a6c 2023-01-28 John Vincent | sched: exynos: multi_load: Ensure entity is task before applying NTU ratio
+7f67772f18e4 2023-01-28 John Vincent | sched: exynos: multi_load: Set default NTU ratio to '5'
+0b36e7f5f203 2023-01-28 John Vincent | sched: exynos: Move active ratio tracking (ART) to main scheduler
+424f120f3a73 2023-01-28 John Vincent | sched: exynos: aigo: Fix active ratio 'demand' clamping
+91b24a4f0065 2021-05-28 Diep Quynh | sched: exynos: aigo: Avoid arbitrary fmax clamping with PART
+eaeceda2844d 2023-01-28 John Vincent | arm64: dts: exynos: Reset MLT active ratio limits to defaults
+38a05e75bdb1 2023-01-28 John Vincent | sched: exynos: Only allow on-top tasks to skip 'overcap' checks
+d46dd1a5892f 2023-01-28 John Vincent | sched: tune: Improve dynamic CPU boosting
+df029c248bc6 2023-01-28 John Vincent | sched: tune: Set EMS new task util ratio to default
+b006c72662c1 2023-01-28 John Vincent | sched: exynos: frt: Improve 'best CPU' logging
+a4afbe865dca 2023-01-28 John Vincent | sched: exynos: frt: Get task allowed CPUs first before applying TEX
+1affc60ceaee 2023-01-28 John Vincent | arm64: dts: exynos: Drop 'ems-cpufreq' configurations
+7a876a80f244 2023-02-01 John Vincent | sched: fair: Guard EMS check for migration
+21454759b3c0 2023-01-31 John Vincent | Revert "sched: exynos: frt: Add initial support for Task EXpress (TEX)"
+588b261e3eed 2023-02-01 John Vincent | devfreq_boost: Boost MIF based on EMS SysBusy indicators
+15275b584b0b 2023-02-01 John Vincent | sched: exynos: Drop the 'is app' check for task on-top check
+2c957c0a7260 2023-02-01 John Vincent | sched: exynos: Match upstream for 'underutilized' and 'TEX suppressed' migration checks
+af1feb29abcf 2023-03-05 John Vincent | sched: exynos: Make global task boosting per-cgroup on wakeup
+a3e80093984a 2023-03-04 John Vincent | sched: exynos: Introduce GPU boosting triggers for EMS
+d4cbc41ce4ee 2023-03-05 John Vincent | sched: exynos: Consider EMS per-task boosting a 'boosted' task
+2f01b66ca3a3 2023-03-05 John Vincent | sched: exynos: Avoid changing scheduling policy for perf tasks
+93dff8cdf20d 2023-03-05 John Vincent | [skip rel] sched: exynos: frt: Optimize RT task boosting
+45a78c8a50ff 2023-03-06 John Vincent | sched: exynos: Save battery life during screen off
+77a1b9d1c538 2023-03-06 John Vincent | sched: exynos: Revamp 'preferred' CPUs selection
+1cc63055ab6b 2023-03-06 John Vincent | arm64: dts: exynos: Drop 'prefer-cpus' configuration for EMS
+db01faec9bc3 2023-03-07 John Vincent | Revert "sched: exynos: Avoid changing scheduling policy for perf tasks"
+e038bedc18df 2020-03-11 Takashi Iwai | cpufreq: Use scnprintf() for avoiding potential buffer overflow
+95c0499c8f90 2020-10-05 Viresh Kumar | cpufreq: stats: Mark few conditionals with unlikely()
+572dd8e1db5c 2023-03-12 John Vincent | sched: exynos: Always check for active CPU for previous CPU placement
+226ab51771bc 2023-03-12 John Vincent | sched: exynos: Remove legacy 'boosted task' check for avoiding migration
+42575ca2d7a2 2023-03-12 John Vincent | sched: exynos: Always consider the task's allowed CPUs
+0a6c2db27555 2023-03-22 John Vincent | sched: Set UCLAMP_MIN of RT tasks to zero
+07801f3b6dc5 2023-04-16 John Vincent | sched: exynos: Improve on-top scheduling
+b6563a158c02 2023-07-19 John Vincent | sched: exynos: Pull 'qjump' node and make it inaccessible
