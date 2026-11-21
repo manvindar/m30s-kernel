@@ -37,7 +37,7 @@ on:
         description: Optional YYYYMMDD metadata label on the exact Android 17 baseline; requires fragment=true and perf/boost/hdr=false
         default: ''
       ksu_variant:
-        description: 'diagnostic only: setuid | rename | sucompat, disables that KernelSU hook'
+        description: 'diagnostic only: setuid | rename | sucompat | norc, disables that KernelSU hook (norc: the atrace.rc injection)'
         default: ''
       extras:
         description: Mint-port extras, comma list of memfd,pidfd,wireguard,deknox,kernelsu,ems,lto ('all' = all but ems and lto); requires fragment=true, no version_date/performance_profile
@@ -119,6 +119,14 @@ jobs:
               case "${{ inputs.ksu_variant }}" in   # diagnostic bisect of the isolated-process uid failure, never for a release
                 setuid) sed -i '/LSM_HOOK_INIT(task_fix_setuid/d;/KSU_LSM_HOOK_HACK_INIT(setuid_head/d' src/KernelSU/kernel/core_hook.c;;
                 rename) sed -i '/LSM_HOOK_INIT(inode_rename/d' src/KernelSU/kernel/core_hook.c;;
+                norc) python3 - <<'PYV'
+          import re
+          p = 'src/KernelSU/kernel/ksud.c'; s = open(p).read()
+          s, n = re.subn(r'(\nint ksu_handle_vfs_read\([^)]*\)\s*\{)', r'\1\n\treturn 0;', s, count=1)
+          assert n == 1
+          open(p, 'w').write(s)
+          PYV
+                  ;;
                 sucompat) python3 - <<'PYV'
           import re
           p = 'src/KernelSU/kernel/sucompat.c'; s = open(p).read()
