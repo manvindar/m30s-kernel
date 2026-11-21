@@ -249,7 +249,7 @@ jobs:
           for sec, first, last in (('.text', 'first_fmp_text', 'last_fmp_text'), ('.rodata', 'first_fmp_rodata', 'last_fmp_rodata'), ('init.text', 'first_fmp_init', 'last_fmp_init')):
               lo, hi = addr[first], addr[last]
               inside = [n for a, t, n in syms if lo <= int(a, 16) <= hi]
-              foreign = [n for n in inside if n not in own and n not in (first, last) and not n.startswith(('$', '.L'))]
+              foreign = [n for a, t, n in syms if lo < int(a, 16) < hi and n not in own and not n.startswith(('$', '.L'))]   # strictly inside: a zero-size symbol sharing a marker's address (vdso_end at first_fmp_rodata) covers no bytes
               out.write('%s: %s=%x %s=%x span=%d bytes, %d symbols in range, %d foreign: %s\n' % (sec, first, lo, last, hi, hi - lo, len(inside), len(foreign), ' '.join(foreign[:20])))
               bad += len(foreign) + (1 if hi <= lo else 0) + (1 if sec == '.text' and hi - lo < 4096 else 0)   # a tiny .text span means the FMP code is outside the markers
           out.write('RESULT: %s\n' % ('OK, only FMP symbols inside the HMAC ranges' if not bad else 'FAIL, foreign code inside the HMAC range'))
