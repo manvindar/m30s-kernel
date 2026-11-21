@@ -209,7 +209,7 @@ jobs:
             export KBUILD_BUILD_TIMESTAMP="$(python3 -c 'import datetime,sys; print(datetime.datetime.strptime(sys.argv[1], "%Y%m%d").strftime("%a %b %d 00:00:00 UTC %Y"))' "$VERSION_DATE")"
             M="$M LOCALVERSION="
           fi
-          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -B8 "assembler command failed" ../build.log | head -40; make $M V=1 scripts/mod/empty.o 2>&1 | tail -25; fi; exit 1; }
+          make $M -k -j"$(nproc)" Image > ../build.log 2>&1 || { grep -E "error:|\*\*\*|undefined reference" ../build.log | head -60; echo "--- tail of build.log:"; tail -40 ../build.log | cut -c1-300; if [[ " $EXTRAS_LIST " == *" lto "* ]]; then grep -B8 "assembler command failed" ../build.log | head -40; make $M V=1 scripts/mod/empty.o 2>&1 | tail -25; fi; exit 1; }
           if [ -n "$VERSION_DATE" ]; then
             test "$(cat include/config/kernel.release)" = "4.14.113-perf-$VERSION_DATE"
             python3 - <<'PYBANNER'
