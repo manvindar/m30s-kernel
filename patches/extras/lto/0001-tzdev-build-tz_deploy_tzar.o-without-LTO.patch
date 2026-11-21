@@ -1,0 +1,31 @@
+From fb9db4db72199a9c5fedba741ed273a429e7e9de Mon Sep 17 00:00:00 2001
+From: Manvindar Singh <manvindarsingh123@gmail.com>
+Date: Fri, 20 Nov 2026 22:27:38 -0700
+Subject: [PATCH] tzdev: build tz_deploy_tzar.o without LTO
+
+With KBUILD_SRC empty (in-tree build) the startup.tzar .incbin path is
+"/drivers/misc/tzdev/startup.tzar". GNU as resolves it through the -I.
+search path; the integrated assembler used for LTO code generation does
+not, and the LTO link fails. Keep this one object out of LTO.
+
+Signed-off-by: Manvindar Singh <manvindarsingh123@gmail.com>
+---
+ drivers/misc/tzdev/Makefile | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/misc/tzdev/Makefile b/drivers/misc/tzdev/Makefile
+index 0b77fa05c..ff927f7ce 100755
+--- a/drivers/misc/tzdev/Makefile
++++ b/drivers/misc/tzdev/Makefile
+@@ -34,6 +34,8 @@ obj-$(CONFIG_MSM_SCM)			+= tz_msm_platform.o
+ obj-$(CONFIG_TZDEV_BOOST)		+= tz_boost.o
+ obj-$(CONFIG_TZDEV_CMA)			+= tz_cma.o
+ obj-$(CONFIG_TZDEV_DEPLOY_TZAR)		+= tz_deploy_tzar.o
++# GNU as finds the "/drivers/..." incbin through -I.; the LTO-time integrated assembler does not
++CFLAGS_tz_deploy_tzar.o	+= $(DISABLE_LTO)
+ obj-$(CONFIG_TZDEV_HOTPLUG)		+= tz_hotplug.o
+ obj-$(CONFIG_TZIRS)			+= tzirs.o
+ obj-$(CONFIG_TZLOG)			+= tz_iwlog.o
+-- 
+2.55.0
+
